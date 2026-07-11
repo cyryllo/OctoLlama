@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Ollama Manager — panel WWW</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header class="top">
+      <h1>Ollama Manager</h1>
+      {% if session.get('zalogowany') %}
+        <span class="uzytkownik">{{ session.get('username') }} — <a href="{{ url_for('logout') }}">wyloguj</a></span>
+      {% endif %}
+    </header>
+
+    {% if session.get('zalogowany') %}
+      <nav class="zakladki">
+        <a href="{{ url_for('master_widok') }}" class="{{ 'aktywna' if request.endpoint == 'master_widok' }}">Master</a>
+        <a href="{{ url_for('slave_widok') }}" class="{{ 'aktywna' if request.endpoint == 'slave_widok' }}">Slave</a>
+        <a href="{{ url_for('llm_widok') }}" class="{{ 'aktywna' if request.endpoint == 'llm_widok' }}">LLM</a>
+      </nav>
+    {% endif %}
+
+    {% with komunikaty = get_flashed_messages() %}
+      {% if komunikaty %}
+        <ul class="flash">
+          {% for komunikat in komunikaty %}
+            <li>{{ komunikat }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block tresc %}{% endblock %}
+  </div>
+</body>
+</html>

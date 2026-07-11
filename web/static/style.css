@@ -1,0 +1,281 @@
+/* Ollama Manager - panel WWW. Samodzielny CSS, bez frameworka/CDN, jasny+ciemny motyw. */
+
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface-2: #f9fafb;
+  --text: #1a1d23;
+  --text-muted: #667085;
+  --border: #e3e5e9;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-text: #ffffff;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --danger-bg: #fee2e2;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --surface: #1c1f26;
+    --surface-2: #20232b;
+    --text: #e7e9ee;
+    --text-muted: #9aa1ac;
+    --border: #2c3038;
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --primary-text: #0b1220;
+    --danger: #f87171;
+    --danger-hover: #fca5a5;
+    --success: #4ade80;
+    --success-bg: #10321f;
+    --danger-bg: #3a1414;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+a { color: var(--primary); }
+
+header.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+header.top h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.uzytkownik {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+nav.zakladki {
+  display: flex;
+  gap: 0.25rem;
+  margin: 1.25rem 0 1.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+nav.zakladki a {
+  padding: 0.6rem 1.1rem;
+  text-decoration: none;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  border-radius: 6px 6px 0 0;
+}
+
+nav.zakladki a:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+nav.zakladki a.aktywna {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 1.75rem 0 0.75rem;
+}
+
+h2:first-child { margin-top: 0; }
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 0.25rem 1.25rem 1.25rem;
+  margin: 0 0 1.25rem;
+}
+
+legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  margin: 0.7rem 0 0.3rem;
+  font-size: 0.92rem;
+}
+
+input[type=text],
+input[type=password],
+select,
+textarea {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+textarea { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+
+input[type=text]:focus,
+input[type=password]:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+small {
+  display: block;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0.7rem;
+  font-size: 0.85rem;
+}
+
+label:has(input[type=checkbox]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  margin: 0.4rem 0 0;
+}
+
+button, .btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  margin: 0.4rem 0.4rem 0 0;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+button:hover, .btn:hover { filter: brightness(0.96); }
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary, .btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+
+button.primary:hover, .btn.primary:hover { background: var(--primary-hover); }
+
+button.danger, .btn.danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+button.danger:hover, .btn.danger:hover {
+  background: var(--danger-bg);
+}
+
+form.inline { display: inline; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+th, td {
+  text-align: left;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: var(--surface-2);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+tr:last-child td { border-bottom: none; }
+table button { margin: 0; }
+
+.pill {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.pill.ok { background: var(--success-bg); color: var(--success); }
+.pill.blad { background: var(--danger-bg); color: var(--danger); }
+
+.flash {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+}
+
+.flash li {
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-size: 0.92rem;
+}
+
+code {
+  background: var(--surface-2);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.login-wrap {
+  max-width: 22rem;
+  margin: 4rem auto 0;
+}
+
+@media (max-width: 40rem) {
+  .container { padding: 1rem 0.85rem 3rem; }
+  nav.zakladki a { padding: 0.5rem 0.7rem; font-size: 0.92rem; }
+  table { font-size: 0.9rem; }
+  th, td { padding: 0.45rem 0.5rem; }
+}

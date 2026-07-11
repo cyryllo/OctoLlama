@@ -1,0 +1,105 @@
+"""Generator instalatora dla ZDALNEGO hosta (np. BC-250) — zakładka "Slave".
+
+Jeden samodzielny skrypt bash: instaluje Ollamę, montuje eksport NFS z tego
+(gateway) hosta i stawia ollama-manager-daemon — odpalany ręcznie przez SSH na
+docelowej maszynie (panel WWW nie ma i nie potrzebuje żadnych poświadczeń SSH
+do obcych maszyn, patrz README.md "Dodawanie nowego hosta").
+
+Kod demona jest WKLEJONY do środka skryptu (nie pobierany osobno) — jeden plik,
+jedna komenda, zero zależności od tego, skąd user go uruchomi. Czytany z
+instalacji na TYM hoście (/opt/ollama-manager/daemon), z fallbackiem na kopię
+w repo — działa też, gdy panel jeszcze nie przeszedł przez install.sh.
+"""
+
+import socket
+from pathlib import Path
+
+_TU = Path(__file__).parent
+
+
+def _pierwszy_istniejacy(*kandydaci):
+    for k in kandydaci:
+        if k.exists():
+            return k
+    raise FileNotFoundError(f"Żaden z kandydatów nie istnieje: {kandydaci}")
+
+
+def _kod_demona():
+    return _pierwszy_istniejacy(
+        Path("/opt/ollama-manager/daemon/ollama_manager_daemon.py"),
+        _TU.parent / "daemon" / "ollama_manager_daemon.py",
+    ).read_text()
+
+
+def _wymagania_demona():
+    return _pierwszy_istniejacy(
+        Path("/opt/ollama-manager/daemon/requirements.txt"),
+        _TU.parent / "daemon" / "requirements.txt",
+    ).read_text()
+
+
+def _tresc_unitu():
+    return _pierwszy_istniejacy(
+        _TU.parent / "daemon" / "systemd" / "ollama-manager-daemon.service",
+        Path("/etc/systemd/system/ollama-manager-daemon.service"),
+    ).read_text()
+
+
+def adres_lan():
+    # WHY: standardowy trik - UDP connect() tylko wybiera trasę/interfejs
+    # (nic nie wysyła), więc działa nawet bez realnej łączności z 8.8.8.8.
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
+def zbuduj_install_script(nazwa, ip, adres_serwera=None):
+    adres_serwera = adres_serwera or adres_lan()
+    eksport = f"{adres_serwera}:/srv/ollama-manager/hosts/{nazwa}"
+
+    return f"""#!/bin/bash
+# Instalator hosta '{nazwa}' ({ip}) - wygenerowany przez panel WWW Home AI Farm.
+# Uruchom NA TEJ MASZYNIE (np. przez SSH): bash install-{nazwa}.sh
+set -euo pipefail
+
+echo "=== [1/3] Ollama ==="
+if command -v ollama >/dev/null 2>&1; then
+    echo "Już zainstalowana - pomijam."
+else
+    curl -fsSL https://ollama.com/install.sh | sh
+fi
+
+echo "=== [2/3] Montowanie stanu (NFS z {adres_serwera}) ==="
+command -v mount.nfs >/dev/null 2>&1 || sudo apt-get install -y nfs-common
+sudo mkdir -p /var/lib/ollama-manager/state
+if ! grep -qs "^{eksport} " /etc/fstab; then
+    echo "{eksport} /var/lib/ollama-manager/state nfs defaults 0 0" | sudo tee -a /etc/fstab >/dev/null
+fi
+mountpoint -q /var/lib/ollama-manager/state || sudo mount /var/lib/ollama-manager/state
+
+echo "=== [3/3] ollama-manager-daemon ==="
+sudo mkdir -p /opt/ollama-manager/daemon
+sudo tee /opt/ollama-manager/daemon/ollama_manager_daemon.py > /dev/null <<'DAEMON_PY_EOF'
+{_kod_demona()}
+DAEMON_PY_EOF
+sudo tee /opt/ollama-manager/daemon/requirements.txt > /dev/null <<'REQ_EOF'
+{_wymagania_demona()}
+REQ_EOF
+[ -d /opt/ollama-manager/daemon/.venv ] || sudo python3 -m venv /opt/ollama-manager/daemon/.venv
+sudo /opt/ollama-manager/daemon/.venv/bin/pip install -q -r /opt/ollama-manager/daemon/requirements.txt
+
+sudo tee /etc/systemd/system/ollama-manager-daemon.service > /dev/null <<'UNIT_EOF'
+{_tresc_unitu()}
+UNIT_EOF
+sudo systemctl daemon-reload
+sudo systemctl enable ollama-manager-daemon.service
+sudo systemctl restart ollama-manager-daemon.service
+
+echo
+echo "Gotowe. Host '{nazwa}' powinien pojawić się w zakładce Slave panelu WWW."
+"""

@@ -1,0 +1,12 @@
+[Unit]
+Description=Ollama Manager - panel WWW
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/ollama-manager-web/.venv/bin/python3 %h/.local/share/ollama-manager-web/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
