@@ -4,7 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/share/ollama-manager-web/.venv/bin/python3 %h/.local/share/ollama-manager-web/app.py
+WorkingDirectory=%h/.local/share/ollama-manager-web
+ExecStart=%h/.local/share/ollama-manager-web/.venv/bin/waitress-serve --host=0.0.0.0 --port=5000 app:app
 Restart=on-failure
 RestartSec=5
 

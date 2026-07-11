@@ -367,8 +367,10 @@ def modele_pobierz(nazwa):
 
 
 if __name__ == "__main__":
-    # WHY: panel jest widoczny w całym LAN (README, decyzja #1) - debugger
-    # Werkzeuga (debug=True) na sieci to zdalne wykonanie kodu, nie tylko
-    # wygodniejsze tracebacki. Włączany świadomie, tylko lokalnie do developmentu.
+    # WHY: tylko do lokalnego developmentu - prawdziwe uruchomienie idzie przez
+    # `waitress-serve` (patrz systemd/ollama-manager-web.service), bo wbudowany
+    # serwer Flask ostrzega o sobie samym "nie używaj tego produkcyjnie", a
+    # debug=True na hoście widocznym w całym LAN (decyzja #1) to zdalne
+    # wykonanie kodu przez debugger Werkzeuga, nie tylko wygodniejsze tracebacki.
     debug = os.environ.get("OLLAMA_MANAGER_DEBUG") == "1"
     app.run(host="0.0.0.0", port=5000, debug=debug)
