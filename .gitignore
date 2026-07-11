@@ -14,3 +14,6 @@ daemon/.venv/
 
 # Claude Code - lokalne ustawienia usera, nie współdzielone.
 .claude/settings.local.json
+
+# Surowe notatki/decyzje z rozmowy - lokalny materiał roboczy, nie publiczny opis.
+NOTATKI.md
