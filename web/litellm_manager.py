@@ -5,7 +5,7 @@ patrz README.md sekcja Architektura), LiteLLM chodzi jako usługa `systemd --use
 i NIE wymaga roota — panel WWW steruje nią BEZPOŚREDNIO, tak samo jak operacjami
 na modelach przez `/api/...`. Logika przeniesiona z Ollama Managera
 (~/Projekty/Ollama-manager, funkcje `litellm_*`, `_zbuduj_config_litellm`,
-`_wykryj_modele_na_serwerach`, `_uv_zapewnij`) — działa 1:1, bo już tam była
+`_wykryj_modele_na_serwerach`, `uv_zapewnij`) — działa 1:1, bo już tam była
 odseparowana od GUI.
 
 LiteLLM agreguje TYLKO modele, które user świadomie zaznaczył per host w
@@ -40,7 +40,7 @@ def _systemctl_user(args):
 
 # =============================================================================
 #  Instalacja (uv tool install — bez roota, bez systemowego pip, patrz WHY w
-#  Ollama Managerze przy _uv_zapewnij: Debian PEP 668 blokuje 'pip install --user')
+#  Ollama Managerze przy uv_zapewnij: Debian PEP 668 blokuje 'pip install --user')
 # =============================================================================
 def _uv_binarka():
     znaleziona = shutil.which("uv")
@@ -50,7 +50,7 @@ def _uv_binarka():
     return str(kandydat) if kandydat.exists() else None
 
 
-def _uv_zapewnij():
+def uv_zapewnij():
     uv = _uv_binarka()
     if uv:
         return uv
@@ -79,7 +79,7 @@ def zainstalowane():
 
 
 def zainstaluj():
-    uv = _uv_zapewnij()
+    uv = uv_zapewnij()
     wynik = subprocess.run(
         [uv, "tool", "install", "litellm[proxy]"],
         capture_output=True, text=True, timeout=None,

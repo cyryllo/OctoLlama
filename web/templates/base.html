@@ -22,6 +22,7 @@
         <a href="{{ url_for('master_widok') }}" class="{{ 'aktywna' if request.endpoint == 'master_widok' }}">Master</a>
         <a href="{{ url_for('slave_widok') }}" class="{{ 'aktywna' if request.endpoint == 'slave_widok' }}">Slave</a>
         <a href="{{ url_for('llm_widok') }}" class="{{ 'aktywna' if request.endpoint == 'llm_widok' }}">LLM</a>
+        <a href="{{ url_for('webui_widok') }}" class="{{ 'aktywna' if request.endpoint == 'webui_widok' }}">WebUI</a>
       </nav>
     {% endif %}
 

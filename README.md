@@ -2,11 +2,12 @@
 
 <p align="center"><img src="logo_octollama.png" alt="OctoLlama" width="480"></p>
 
-Panel WWW do zarządzania [Ollamą](https://ollama.com) i agregatorem
-[LiteLLM](https://www.litellm.ai/) na wielu hostach w domowej sieci —
-bez okienek, logowanie, dostępny z przeglądarki (też z telefonu). Odpowiednik
-funkcji desktopowej aplikacji [Ollama Manager](https://github.com/cyryllo/Ollama-manager)
-(PyQt6/KDE), tylko sterowany przez WWW.
+Panel WWW do zarządzania [Ollamą](https://ollama.com), agregatorem
+[LiteLLM](https://www.litellm.ai/) i [Open WebUI](https://openwebui.com/) na
+wielu hostach w domowej sieci — bez okienek, logowanie, dostępny z
+przeglądarki (też z telefonu). Odpowiednik funkcji desktopowej aplikacji
+[Ollama Manager](https://github.com/cyryllo/Ollama-manager) (PyQt6/KDE), tylko
+sterowany przez WWW.
 
 ## Funkcje
 
@@ -17,6 +18,8 @@ funkcji desktopowej aplikacji [Ollama Manager](https://github.com/cyryllo/Ollama
   pobieranie nowych modeli z paskiem postępu, usuwanie.
 - **Agregator LiteLLM** — jeden endpoint (OpenAI-kompatybilny) nad modelami ze
   wszystkich hostów naraz; świadomy wybór, które modele mają być wystawione.
+- **Open WebUI** — panel czatu podpięty pod LiteLLM (nie pod pojedynczy host),
+  widzi dokładnie te modele, które wybrałeś do wystawienia.
 - **Config dla Continue.dev** (VS Code) — generowany z aktualnie wystawionych
   modeli, do ręcznego wklejenia (panel nigdy nie nadpisuje configu użytkownika).
 - **Wielohostowość** — dodawanie zdalnych hostów (np. mini-PC z Ollamą) z
@@ -89,7 +92,7 @@ Panel będzie dostępny pod `http://<adres-tego-hosta>:5000`.
 
 ## Użycie
 
-Panel ma trzy zakładki:
+Panel ma cztery zakładki:
 
 - **Master** — usługa Ollama i jej zmienne środowiskowe na tym hoście, status
   wszystkich podłączonych hostów, link do zarządzania modelami.
@@ -99,6 +102,8 @@ Panel ma trzy zakładki:
   swojego demona.
 - **LLM** — start/stop agregatora LiteLLM, wybór które modele z których
   hostów mają być wystawione, generowanie configu dla Continue.dev.
+- **WebUI** — start/stop Open WebUI, podpiętego pod LiteLLM (widzi te same,
+  świadomie wybrane modele, ze wszystkich hostów naraz).
 
 ## Struktura repo
 
@@ -110,6 +115,7 @@ web/
   app.py                     Trasy / logika widoków (Flask)
   ollama_client.py           Klient REST API Ollamy (modele)
   litellm_manager.py         Sterowanie LiteLLM + config Continue.dev
+  openwebui_manager.py       Sterowanie Open WebUI (podpięte pod LiteLLM)
   hosts_store.py             Lista hostów (zakładka Slave)
   install_generator.py       Generator instalatora dla zdalnego hosta
   state_store.py             Odczyt/zapis state.json / status.json
@@ -121,14 +127,20 @@ install.sh                   Instalator dla hosta zarządzającego
 
 ## Status
 
-Działający szkielet — sterowanie usługą, modele, LiteLLM, config Continue.dev
-i wielohostowość (NFS + generator instalatora) działają end-to-end. Ścieżka
-NFS/zdalny demon nie była jeszcze zweryfikowana na żywym sprzęcie. Świadomie
-pominięte: TLS (do zapewnienia przez reverse proxy przed panelem), Open WebUI,
-zarządzanie zasilaniem hostów (Wake-on-LAN).
+Działający szkielet — sterowanie usługą, modele, LiteLLM, Open WebUI, config
+Continue.dev i wielohostowość (NFS + generator instalatora) działają
+end-to-end. Ścieżka NFS/zdalny demon nie była jeszcze zweryfikowana na żywym
+sprzęcie. Świadomie pominięte: TLS (do zapewnienia przez reverse proxy przed
+panelem), zarządzanie zasilaniem hostów (Wake-on-LAN).
 
 ## Powiązane projekty
 
 - [Ollama Manager](https://github.com/cyryllo/Ollama-manager) — aplikacja
   desktopowa PyQt6/KDE, źródło logiki sterowania usługą/modelami/LiteLLM
   przeniesionej tutaj.
+
+## Licencja
+
+[GNU GPLv3](LICENSE) — ten projekt zawiera logikę przeniesioną z
+[Ollama Managera](https://github.com/cyryllo/Ollama-manager) (GPLv3), więc
+dziedziczy tę samą licencję.

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block tresc %}
+  <h2>Open WebUI</h2>
+  <p>
+    <small>Podpięte pod LiteLLM (nie pod pojedynczy host) — widzi dokładnie modele wybrane w zakładce <a href="{{ url_for('llm_widok') }}">LLM</a>, ze wszystkich hostów naraz.</small>
+  </p>
+  <p>
+    {% if not webui.zainstalowane %}
+      Nie zainstalowane.
+    {% else %}
+      Usługa: <strong>{{ "działa" if webui.dziala else "zatrzymana" }}</strong> —
+      autostart: <strong>{{ "włączony" if webui.autostart else "wyłączony" }}</strong>
+      {% if webui.dziala %}— <a href="{{ webui_url }}" target="_blank">otwórz →</a>{% endif %}
+    {% endif %}
+  </p>
+  <fieldset>
+    <legend>Usługa Open WebUI</legend>
+    {% if not webui.zainstalowane %}
+      <form method="post" action="{{ url_for('webui_usluga') }}" class="inline">
+        <input type="hidden" name="akcja" value="zainstaluj">
+        <button type="submit" class="primary">Zainstaluj Open WebUI</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('webui_usluga') }}" class="inline">
+        <input type="hidden" name="akcja" value="start">
+        <button type="submit" class="primary" {{ "disabled" if webui.dziala }}>Start</button>
+      </form>
+      <form method="post" action="{{ url_for('webui_usluga') }}" class="inline">
+        <input type="hidden" name="akcja" value="stop">
+        <button type="submit" {{ "disabled" if not webui.dziala }}>Stop</button>
+      </form>
+      <form method="post" action="{{ url_for('webui_usluga') }}" class="inline">
+        <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if webui.autostart else 'autostart_wlacz' }}">
+        <button type="submit">{{ "Wyłącz autostart" if webui.autostart else "Włącz autostart" }}</button>
+      </form>
+    {% endif %}
+  </fieldset>
+{% endblock %}

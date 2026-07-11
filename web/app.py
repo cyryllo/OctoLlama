@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Panel WWW ollama-manager — trzy zakładki: Master / Slave / LLM.
+"""Panel WWW ollama-manager — cztery zakładki: Master / Slave / LLM / WebUI.
 
 Ten proces NIGDY nie woła systemctl/pkexec dla usługi Ollama bezpośrednio —
 tylko zapisuje docelowy stan do state.json, który stosuje lokalny
-ollama-manager-daemon (patrz README.md, sekcja Architektura). LiteLLM (usługa
-systemd --user, bez roota) i operacje na modelach są sterowane bezpośrednio.
+ollama-manager-daemon (patrz README.md, sekcja Architektura). LiteLLM/WebUI
+(usługi systemd --user, bez roota) i operacje na modelach są sterowane
+bezpośrednio.
 
 - Master: usługa Ollama i jej zmienne środowiskowe NA TYM hoście + status
   wszystkich podłączonych hostów (master + slave'y).
@@ -12,6 +13,8 @@ systemd --user, bez roota) i operacje na modelach są sterowane bezpośrednio.
   każdego z nich.
 - LLM: sterowanie agregatorem LiteLLM + wybór, które modele z których hostów
   ma wystawiać.
+- WebUI: Open WebUI podpięte pod LiteLLM (widzi te same, świadomie wybrane
+  modele, ze wszystkich hostów naraz).
 - Modele (/modele/<nazwa>, linkowane z Master/Slave): lista/pobierz/usuń modele
   na DOWOLNYM hoście, bezpośrednio przez /api/... (zero roota, jak LiteLLM).
 """
@@ -29,6 +32,7 @@ from flask import Flask, Response, flash, redirect, render_template, request, se
 import hosts_store
 import install_generator
 import litellm_manager as litellm
+import openwebui_manager as webui
 import pobierania
 from auth import zweryfikuj
 from ollama_client import OllamaClient
@@ -309,6 +313,43 @@ def llm_config_continue():
     modele = litellm.modele_wystawione(hosts_store.wczytaj_hosty())
     tresc = litellm.zbuduj_config_continue(modele)
     return render_template("config_continue.html", tresc=tresc, modele=modele)
+
+
+# =============================================================================
+#  WebUI — Open WebUI podpięte pod LiteLLM (patrz openwebui_manager.py)
+# =============================================================================
+@app.route("/webui")
+@login_required
+def webui_widok():
+    webui_stan = {
+        "zainstalowane": webui.zainstalowane(),
+        "dziala": webui.dziala(),
+        "autostart": webui.autostart_wlaczony(),
+    }
+    return render_template("webui.html", webui=webui_stan, webui_url=webui.WEBUI_URL)
+
+
+@app.route("/webui/usluga", methods=["POST"])
+@login_required
+def webui_usluga():
+    # WHY: Open WebUI, tak samo jak LiteLLM, to usługa systemd --user bez roota
+    # (patrz openwebui_manager.py, docstring modułu) - sterowana bezpośrednio.
+    akcja = request.form.get("akcja")
+    try:
+        if akcja == "zainstaluj":
+            webui.zainstaluj()
+        elif akcja == "start":
+            webui.uruchom()
+        elif akcja == "stop":
+            webui.zatrzymaj()
+        elif akcja == "autostart_wlacz":
+            webui.autostart(True)
+        elif akcja == "autostart_wylacz":
+            webui.autostart(False)
+    except RuntimeError as e:
+        flash(str(e))
+
+    return redirect(url_for("webui_widok"))
 
 
 # =============================================================================
