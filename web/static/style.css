@@ -1,4 +1,4 @@
-/* Ollama Manager - panel WWW. Samodzielny CSS, bez frameworka/CDN, jasny+ciemny motyw. */
+/* OctoLlama - panel WWW. Samodzielny CSS, bez frameworka/CDN, jasny+ciemny motyw. */
 
 :root {
   --bg: #f3f4f6;
@@ -67,8 +67,16 @@ header.top {
 }
 
 header.top h1 {
-  font-size: 1.4rem;
+  font-size: 4.5rem;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-icon {
+  height: 5.5rem;
+  width: auto;
 }
 
 .uzytkownik {
@@ -278,4 +286,6 @@ code {
   nav.zakladki a { padding: 0.5rem 0.7rem; font-size: 0.92rem; }
   table { font-size: 0.9rem; }
   th, td { padding: 0.45rem 0.5rem; }
+  header.top h1 { font-size: 2.4rem; }
+  .logo-icon { height: 3rem; }
 }

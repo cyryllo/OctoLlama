@@ -1,5 +1,7 @@
 # OctoLlama
 
+<p align="center"><img src="logo_octollama.png" alt="OctoLlama" width="480"></p>
+
 Panel WWW do zarządzania [Ollamą](https://ollama.com) i agregatorem
 [LiteLLM](https://www.litellm.ai/) na wielu hostach w domowej sieci —
 bez okienek, logowanie, dostępny z przeglądarki (też z telefonu). Odpowiednik

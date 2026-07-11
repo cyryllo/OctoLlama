@@ -4,13 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Ollama Manager — panel WWW</title>
+  <title>OctoLlama — panel WWW</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="container">
     <header class="top">
-      <h1>Ollama Manager</h1>
+      <h1><img src="{{ url_for('static', filename='favicon.png') }}" alt="" class="logo-icon">OctoLlama</h1>
       {% if session.get('zalogowany') %}
         <span class="uzytkownik">{{ session.get('username') }} — <a href="{{ url_for('logout') }}">wyloguj</a></span>
       {% endif %}

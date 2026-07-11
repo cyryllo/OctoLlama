@@ -1,5 +1,5 @@
 [Unit]
-Description=Ollama Manager - panel WWW
+Description=OctoLlama - panel WWW
 After=network.target
 
 [Service]
