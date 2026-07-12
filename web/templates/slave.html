@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block tresc %}
+  {% if odswiezaj %}
+    <meta http-equiv="refresh" content="2">
+  {% endif %}
+
   <h2>{{ _("Slave — zdalne hosty Ollamy") }}</h2>
 
   <table>

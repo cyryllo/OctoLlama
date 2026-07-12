@@ -23,7 +23,7 @@ import ipaddress
 import os
 import re
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -46,6 +46,37 @@ app = Flask(__name__)
 app.jinja_env.globals["_"] = _
 app.jinja_env.globals["JEZYKI"] = i18n.JEZYKI
 app.jinja_env.globals["_jezyk_aktualny"] = i18n.aktualny_jezyk
+
+
+# =============================================================================
+#  Auto-odświeżanie stron dopóki demon nie zastosuje zmiany zapisanej przez
+#  panel (patrz NOTATKI.md, "Auto-odświeżanie po zmianie ustawień") - per
+#  host, bo Slave pokazuje wiele hostów naraz, nie jeden jak Master.
+# =============================================================================
+def oznacz_oczekiwanie(nazwa_hosta):
+    oczekiwania = session.get("oczekiwania", {})
+    oczekiwania[nazwa_hosta] = datetime.now(timezone.utc).isoformat()
+    session["oczekiwania"] = oczekiwania
+
+
+def czy_odswiezac(nazwa_hosta, status):
+    # WHY: porównanie stringów ISO 8601 UTC (ten sam format co po stronie
+    # demona) sortuje się poprawnie jak daty - nie trzeba parsować do datetime
+    # przy każdym porównaniu, tylko przy liczeniu wieku dla limitu 30s.
+    oczekiwania = session.get("oczekiwania", {})
+    oczekuje_od = oczekiwania.get(nazwa_hosta)
+    if not oczekuje_od:
+        return False
+
+    wiek = (datetime.now(timezone.utc) - datetime.fromisoformat(oczekuje_od)).total_seconds()
+    zdazyl = status and status.get("timestamp", "") >= oczekuje_od
+    # WHY: po 30s bez odpowiedzi demona (usługa stoi? maszyna się wyłączyła?)
+    # przestajemy odświeżać, żeby nie kręcić się w nieskończoność.
+    if zdazyl or wiek > 30:
+        oczekiwania.pop(nazwa_hosta, None)
+        session["oczekiwania"] = oczekiwania
+        return False
+    return True
 
 
 def _wczytaj_wersje():
@@ -151,6 +182,7 @@ def index():
 def master_widok():
     stan = wczytaj_stan()
     status = wczytaj_status()
+    odswiezaj = czy_odswiezac("master", status)
 
     hosty_status = []
     for h in hosts_store.wczytaj_hosty():
@@ -161,7 +193,11 @@ def master_widok():
         hosty_status.append({"nazwa": h["nazwa"], "adres": h["adres"], "status": st})
 
     return render_template(
-        "master.html", ollama=stan["ollama"], status=status, hosty_status=hosty_status
+        "master.html",
+        ollama=stan["ollama"],
+        status=status,
+        hosty_status=hosty_status,
+        odswiezaj=odswiezaj,
     )
 
 
@@ -224,6 +260,7 @@ def master_update():
         stan["ollama"]["service_enabled"] = False
 
     zapisz_stan(stan)
+    oznacz_oczekiwanie("master")
     return redirect(url_for("master_widok"))
 
 
@@ -234,9 +271,13 @@ def master_update():
 @login_required
 def slave_widok():
     hosty = []
+    odswiezaj = False
     for h in hosts_store.wczytaj_slave_hosty():
-        hosty.append({**h, "status": hosts_store.wczytaj_status_hosta(h["nazwa"])})
-    return render_template("slave.html", hosty=hosty)
+        status = hosts_store.wczytaj_status_hosta(h["nazwa"])
+        hosty.append({**h, "status": status})
+        if czy_odswiezac(h["nazwa"], status):
+            odswiezaj = True
+    return render_template("slave.html", hosty=hosty, odswiezaj=odswiezaj)
 
 
 @app.route("/slave/dodaj", methods=["POST"])
@@ -315,6 +356,7 @@ def slave_zasilanie(nazwa):
         flash(_("Nie znaleziono takiego hosta."))
         return redirect(url_for("slave_widok"))
     hosts_store.ustaw_zasilanie(nazwa, akcja)
+    oznacz_oczekiwanie(nazwa)
     return redirect(url_for("slave_widok"))
 
 
