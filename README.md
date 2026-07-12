@@ -25,6 +25,8 @@ from a browser (including your phone). The web-based counterpart to the
   models, for manual pasting (the panel never overwrites the user's config).
 - **Multi-host** — add remote hosts (e.g. a mini-PC running Ollama) with an
   auto-generated installer for the new machine.
+- **Host power management** — Wake-on-LAN to wake a sleeping/off host, plus
+  remote power off/restart/suspend.
 - **Login** — single user, password hash in a local file, no database.
 - **Multi-language** — Polish and English (switcher in the header), easy to
   extend with more languages.
@@ -105,7 +107,9 @@ The panel has four tabs:
 - **Slave** — add/remove remote Ollama hosts. After adding a host, the panel
   generates `install-<name>.sh` — download and run it (over SSH) on the target
   machine; it installs Ollama, mounts the state directory over NFS, and sets up
-  its own daemon.
+  its own daemon. Also Wake-on-LAN (the MAC address is auto-detected from the
+  host's ARP entry when it's reachable, or can be entered manually) and remote
+  power off/restart/suspend per host.
 - **LLM** — start/stop the LiteLLM aggregator, choose which models from which
   hosts get exposed, generate the Continue.dev config.
 - **WebUI** — start/stop Open WebUI, wired to LiteLLM (sees the same,
@@ -124,6 +128,7 @@ web/
   openwebui_manager.py       Open WebUI control (wired to LiteLLM)
   hosts_store.py             Host list (Slave tab)
   install_generator.py       Installer generator for remote hosts
+  wol.py                     Wake-on-LAN (magic packet)
   state_store.py             state.json / status.json read/write
   pobierania.py              Background model-pull progress tracking
   i18n.py                    Translations (_(), language choice in session)
@@ -144,10 +149,11 @@ incomplete translation never leaves a blank spot.
 ## Status
 
 A working skeleton — service control, models, LiteLLM, Open WebUI, Continue.dev
-config, and multi-host support (NFS + installer generator) all work end-to-end.
-The NFS/remote-daemon path hasn't been verified on real hardware yet.
-Deliberately left out: TLS (to be handled by a reverse proxy in front of the
-panel), host power management (Wake-on-LAN).
+config, multi-host support (NFS + installer generator), and host power
+management (Wake-on-LAN + remote power off/restart/suspend) all work
+end-to-end. The NFS/remote-daemon path hasn't been verified on real hardware
+yet. Deliberately left out: TLS (to be handled by a reverse proxy in front of
+the panel).
 
 ## Related projects
 

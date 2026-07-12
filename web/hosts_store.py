@@ -69,7 +69,7 @@ def znajdz_host(nazwa):
     return None
 
 
-def dodaj_host(nazwa, ip):
+def dodaj_host(nazwa, ip, mac=None):
     if nazwa == NAZWA_MASTER:
         raise ValueError(
             _("Nazwa '{nazwa}' jest zarezerwowana dla tego hosta.").format(nazwa=NAZWA_MASTER)
@@ -77,7 +77,9 @@ def dodaj_host(nazwa, ip):
     hosty = wczytaj_hosty()
     if any(h["nazwa"] == nazwa for h in hosty):
         raise ValueError(_("Host o nazwie '{nazwa}' już istnieje.").format(nazwa=nazwa))
-    hosty.append({"nazwa": nazwa, "ip": ip, "adres": f"http://{ip}:11434", "modele_llm": []})
+    hosty.append(
+        {"nazwa": nazwa, "ip": ip, "adres": f"http://{ip}:11434", "mac": mac, "modele_llm": []}
+    )
     zapisz_hosty(hosty)
 
 
@@ -96,8 +98,46 @@ def ustaw_modele_llm(nazwa, modele):
     zapisz_hosty(hosty)
 
 
+def ustaw_mac(nazwa, mac):
+    hosty = wczytaj_hosty()
+    for h in hosty:
+        if h["nazwa"] == nazwa:
+            h["mac"] = mac
+    zapisz_hosty(hosty)
+
+
 def wczytaj_status_hosta(nazwa):
     try:
         return json.loads((HOSTS_STATE_BASE / nazwa / "status.json").read_text())
     except (OSError, json.JSONDecodeError):
         return None
+
+
+def _sciezka_state_hosta(nazwa):
+    # WHY: master ma stan lokalnie (state_store.py), zdalne hosty mają swój
+    # state.json na tym samym dysku co status.json (workstation to serwer NFS
+    # dla obu plików - patrz moduł docstring).
+    if nazwa == NAZWA_MASTER:
+        import state_store
+
+        return state_store.STATE_PATH
+    return HOSTS_STATE_BASE / nazwa / "state.json"
+
+
+def ustaw_zasilanie(nazwa, akcja):
+    # WHY: wyłączenie/restart/uśpienie to operacja uprzywilejowana na TAMTYM
+    # hoście - panel WWW nie woła niczego bezpośrednio, tylko zapisuje żądanie
+    # do state.json tego hosta; jego lokalny demon je stosuje i SAM kasuje flagę
+    # przed wykonaniem (patrz daemon/ollama_manager_daemon.py,
+    # zastosuj_zasilanie) - inaczej po wybudzeniu maszyna wyłączyłaby się od razu
+    # ponownie, widząc tę samą, nieskasowaną flagę.
+    sciezka = _sciezka_state_hosta(nazwa)
+    try:
+        stan = json.loads(sciezka.read_text())
+    except (OSError, json.JSONDecodeError):
+        stan = {}
+    stan["zasilanie"] = {"akcja": akcja}
+    sciezka.parent.mkdir(parents=True, exist_ok=True)
+    tmp = sciezka.with_suffix(".tmp")
+    tmp.write_text(json.dumps(stan, indent=2, ensure_ascii=False))
+    tmp.rename(sciezka)

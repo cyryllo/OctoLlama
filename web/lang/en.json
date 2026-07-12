@@ -114,5 +114,19 @@
   "np. bc250": "e.g. bc250",
   "np. llama3.2": "e.g. llama3.2",
   "rozpoczynanie...": "starting...",
-  "gotowe": "done"
+  "gotowe": "done",
+  "Adres MAC (opcjonalnie, do Wake-on-LAN)": "MAC address (optional, for Wake-on-LAN)",
+  "brak MAC": "no MAC",
+  "Nieprawidłowy adres MAC (oczekiwany format: AA:BB:CC:DD:EE:FF).": "Invalid MAC address (expected format: AA:BB:CC:DD:EE:FF).",
+  "Restart": "Restart",
+  "Ten host nie ma ustawionego adresu MAC.": "This host has no MAC address set.",
+  "Uśpij": "Suspend",
+  "Wake-on-LAN wymaga adresu MAC i musi być włączony w BIOS/UEFI docelowej maszyny. Wyłączanie/uśpienie/restart to żądanie zapisywane do state.json tego hosta - wykonuje je jego lokalny demon, może to potrwać chwilę zanim się zastosuje.": "Wake-on-LAN needs a MAC address and must be enabled in the target machine's BIOS/UEFI. Power off/suspend/restart is a request written to that host's state.json - its local daemon carries it out, so it may take a moment to apply.",
+  "Wybudź": "Wake",
+  "Wyłącz": "Power off",
+  "Zasilanie": "Power",
+  "Wykryto adres MAC automatycznie: {mac}": "Automatically detected MAC address: {mac}",
+  "Nie udało się wykryć adresu MAC — host musi teraz odpowiadać w sieci.": "Could not detect the MAC address — the host must be responding on the network right now.",
+  "Wykryj MAC": "Detect MAC",
+  "puste = spróbuj wykryć automatycznie (host musi teraz odpowiadać)": "leave empty to try auto-detecting (host must be responding now)"
 }

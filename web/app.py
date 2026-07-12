@@ -35,6 +35,7 @@ import install_generator
 import litellm_manager as litellm
 import openwebui_manager as webui
 import pobierania
+import wol
 from auth import zweryfikuj
 from i18n import przetlumacz as _
 from ollama_client import OllamaClient
@@ -210,6 +211,7 @@ def slave_widok():
 def slave_dodaj():
     nazwa = request.form.get("nazwa", "").strip()
     ip = request.form.get("ip", "").strip()
+    mac = request.form.get("mac", "").strip() or None
 
     if not NAZWA_HOSTA_WZORZEC.match(nazwa):
         flash(_("Nazwa hosta może zawierać tylko litery, cyfry i myślniki."))
@@ -221,12 +223,65 @@ def slave_dodaj():
         flash(_("Nieprawidłowy adres IP."))
         return redirect(url_for("slave_widok"))
 
+    if mac and not wol.WZORZEC_MAC.match(mac):
+        flash(_("Nieprawidłowy adres MAC (oczekiwany format: AA:BB:CC:DD:EE:FF)."))
+        return redirect(url_for("slave_widok"))
+
+    # WHY: jeśli user nie podał MAC ręcznie, spróbuj wykryć go sam z ARP -
+    # działa tylko gdy host odpowiada TERAZ w sieci (patrz wol.znajdz_mac).
+    if not mac:
+        mac = wol.znajdz_mac(ip)
+        if mac:
+            flash(_("Wykryto adres MAC automatycznie: {mac}").format(mac=mac))
+
     try:
-        hosts_store.dodaj_host(nazwa, ip)
+        hosts_store.dodaj_host(nazwa, ip, mac)
         zsynchronizuj_nfs_eksporty(hosts_store.wczytaj_slave_hosty())
     except ValueError as e:
         flash(str(e))
 
+    return redirect(url_for("slave_widok"))
+
+
+@app.route("/slave/<nazwa>/wykryj_mac", methods=["POST"])
+@login_required
+def slave_wykryj_mac(nazwa):
+    host = hosts_store.znajdz_host(nazwa)
+    if not host:
+        flash(_("Nie znaleziono takiego hosta."))
+        return redirect(url_for("slave_widok"))
+    mac = wol.znajdz_mac(host["ip"])
+    if mac:
+        hosts_store.ustaw_mac(nazwa, mac)
+        flash(_("Wykryto adres MAC automatycznie: {mac}").format(mac=mac))
+    else:
+        flash(_("Nie udało się wykryć adresu MAC — host musi teraz odpowiadać w sieci."))
+    return redirect(url_for("slave_widok"))
+
+
+@app.route("/slave/<nazwa>/wybudz", methods=["POST"])
+@login_required
+def slave_wybudz(nazwa):
+    host = hosts_store.znajdz_host(nazwa)
+    if not host or not host.get("mac"):
+        flash(_("Ten host nie ma ustawionego adresu MAC."))
+        return redirect(url_for("slave_widok"))
+    wol.wyslij_magic_packet(host["mac"])
+    return redirect(url_for("slave_widok"))
+
+
+@app.route("/slave/<nazwa>/zasilanie", methods=["POST"])
+@login_required
+def slave_zasilanie(nazwa):
+    # WHY: wyłączenie/restart/uśpienie to operacja uprzywilejowana na TAMTYM
+    # hoście - panel zapisuje żądanie do JEGO state.json, nie woła niczego
+    # bezpośrednio (patrz hosts_store.ustaw_zasilanie).
+    host = hosts_store.znajdz_host(nazwa)
+    akcja = request.form.get("akcja")
+    if not host or akcja not in ("poweroff", "reboot", "suspend"):
+        flash(_("Nie znaleziono takiego hosta."))
+        return redirect(url_for("slave_widok"))
+    hosts_store.ustaw_zasilanie(nazwa, akcja)
     return redirect(url_for("slave_widok"))
 
 

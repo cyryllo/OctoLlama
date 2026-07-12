@@ -171,6 +171,30 @@ def zastosuj_eksporty_nfs(hosty_nfs, zmiany):
 
 
 # =============================================================================
+#  Zasilanie (zakładka Slave w panelu WWW) — jednorazowe polecenie, NIE stan
+#  do utrzymywania jak reszta. Demon MUSI skasować flagę w state.json PRZED
+#  wykonaniem (jedyne miejsce, gdzie demon świadomie pisze do state.json, nie
+#  tylko status.json) - inaczej po wybudzeniu (Wake-on-LAN) zobaczyłby tę samą,
+#  nieskasowaną flagę i natychmiast wyłączyłby maszynę ponownie, w pętli.
+# =============================================================================
+def zastosuj_zasilanie(cale_dane):
+    akcja = (cale_dane.get("zasilanie") or {}).get("akcja")
+    if not akcja:
+        return False
+
+    cale_dane["zasilanie"] = {"akcja": None}
+    tmp = STATE_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(cale_dane, indent=2, ensure_ascii=False))
+    tmp.rename(STATE_PATH)
+    log.info("zasilanie: %s", akcja)
+
+    polecenie = {"poweroff": "poweroff", "reboot": "reboot", "suspend": "suspend"}.get(akcja)
+    if polecenie:
+        subprocess.run(["systemctl", polecenie], timeout=10)
+    return True
+
+
+# =============================================================================
 #  status.json — panel WWW to czyta i pokazuje np. "zastosowano o 14:32"
 # =============================================================================
 def zapisz_status(ok, zmiany, obecny, blad=None):
@@ -197,6 +221,14 @@ def przetworz():
         cale_dane = json.loads(STATE_PATH.read_text())
     except (OSError, json.JSONDecodeError) as e:
         log.warning("nie można odczytać %s: %s", STATE_PATH, e)
+        return
+
+    try:
+        if zastosuj_zasilanie(cale_dane):
+            return  # WHY: maszyna się wyłącza/restartuje/usypia - reszta stanu nieistotna
+    except Exception as e:
+        log.exception("błąd zasilania")
+        zapisz_status(False, [], stan_aktualny(), blad=str(e))
         return
 
     docelowy = cale_dane.get("ollama", {})

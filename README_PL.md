@@ -24,6 +24,8 @@ sterowany przez WWW.
   modeli, do ręcznego wklejenia (panel nigdy nie nadpisuje configu użytkownika).
 - **Wielohostowość** — dodawanie zdalnych hostów (np. mini-PC z Ollamą) z
   automatycznym wygenerowaniem instalatora dla nowej maszyny.
+- **Zarządzanie zasilaniem hostów** — Wake-on-LAN do wybudzania uśpionego/
+  wyłączonego hosta, plus zdalne wyłączanie/restart/uśpienie.
 - **Logowanie** — jeden użytkownik, hash hasła w lokalnym pliku, bez bazy danych.
 - **Wielojęzyczność** — polski i angielski (przełącznik w nagłówku), łatwe do
   rozszerzenia o kolejne języki.
@@ -103,7 +105,9 @@ Panel ma cztery zakładki:
 - **Slave** — dodawanie/usuwanie zdalnych hostów Ollamy. Po dodaniu hosta
   panel generuje `install-<nazwa>.sh` — pobierz i uruchom go (przez SSH) na
   docelowej maszynie; instaluje Ollamę, montuje stan przez NFS i stawia
-  swojego demona.
+  swojego demona. Też Wake-on-LAN (adres MAC wykrywany automatycznie z ARP,
+  gdy host jest osiągalny, albo wpisywany ręcznie) i zdalne wyłączanie/
+  restart/uśpienie per host.
 - **LLM** — start/stop agregatora LiteLLM, wybór które modele z których
   hostów mają być wystawione, generowanie configu dla Continue.dev.
 - **WebUI** — start/stop Open WebUI, podpiętego pod LiteLLM (widzi te same,
@@ -122,6 +126,7 @@ web/
   openwebui_manager.py       Sterowanie Open WebUI (podpięte pod LiteLLM)
   hosts_store.py             Lista hostów (zakładka Slave)
   install_generator.py       Generator instalatora dla zdalnego hosta
+  wol.py                     Wake-on-LAN (magic packet)
   state_store.py             Odczyt/zapis state.json / status.json
   pobierania.py              Śledzenie pobierania modeli w tle
   i18n.py                    Tłumaczenia (_(), wybór języka w sesji)
@@ -142,10 +147,11 @@ niepełne tłumaczenie nigdy nie zostawia pustego miejsca.
 ## Status
 
 Działający szkielet — sterowanie usługą, modele, LiteLLM, Open WebUI, config
-Continue.dev i wielohostowość (NFS + generator instalatora) działają
+Continue.dev, wielohostowość (NFS + generator instalatora) i zarządzanie
+zasilaniem hostów (Wake-on-LAN + zdalne wyłączanie/restart/uśpienie) działają
 end-to-end. Ścieżka NFS/zdalny demon nie była jeszcze zweryfikowana na żywym
 sprzęcie. Świadomie pominięte: TLS (do zapewnienia przez reverse proxy przed
-panelem), zarządzanie zasilaniem hostów (Wake-on-LAN).
+panelem).
 
 ## Powiązane projekty
 
