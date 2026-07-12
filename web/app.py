@@ -48,6 +48,19 @@ app.jinja_env.globals["JEZYKI"] = i18n.JEZYKI
 app.jinja_env.globals["_jezyk_aktualny"] = i18n.aktualny_jezyk
 
 
+def _wczytaj_wersje():
+    # WHY: install.sh kopiuje VERSION z korzenia repo do TEGO katalogu
+    # (patrz install.sh, krok [6/6]) - stąd szukamy najpierw obok siebie, a
+    # przy uruchomieniu wprost z repo (development) - jeden katalog wyżej.
+    for kandydat in (Path(__file__).parent / "VERSION", Path(__file__).parent.parent / "VERSION"):
+        if kandydat.exists():
+            return kandydat.read_text().strip()
+    return "?"
+
+
+app.jinja_env.globals["WERSJA"] = _wczytaj_wersje()
+
+
 def formatuj_czas(iso_tekst):
     # WHY: status.json trzyma czas w ISO 8601 UTC z mikrosekundami
     # ("2026-07-12T10:02:32.106056+00:00") - dobre do zapisu, nieczytelne do

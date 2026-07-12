@@ -299,6 +299,13 @@ code {
   margin: 4rem auto 0;
 }
 
+.stopka {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 2.5rem;
+}
+
 @media (max-width: 40rem) {
   .container { padding: 1rem 0.85rem 3rem; }
   nav.zakladki a { padding: 0.5rem 0.7rem; font-size: 0.92rem; }
