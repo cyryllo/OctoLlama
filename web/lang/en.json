@@ -128,5 +128,6 @@
   "Wykryto adres MAC automatycznie: {mac}": "Automatically detected MAC address: {mac}",
   "Nie udało się wykryć adresu MAC — host musi teraz odpowiadać w sieci.": "Could not detect the MAC address — the host must be responding on the network right now.",
   "Wykryj MAC": "Detect MAC",
-  "puste = spróbuj wykryć automatycznie (host musi teraz odpowiadać)": "leave empty to try auto-detecting (host must be responding now)"
+  "puste = spróbuj wykryć automatycznie (host musi teraz odpowiadać)": "leave empty to try auto-detecting (host must be responding now)",
+  "dziś": "today"
 }

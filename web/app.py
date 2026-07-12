@@ -23,6 +23,7 @@ import ipaddress
 import os
 import re
 import secrets
+from datetime import datetime
 from functools import wraps
 from pathlib import Path
 
@@ -45,6 +46,25 @@ app = Flask(__name__)
 app.jinja_env.globals["_"] = _
 app.jinja_env.globals["JEZYKI"] = i18n.JEZYKI
 app.jinja_env.globals["_jezyk_aktualny"] = i18n.aktualny_jezyk
+
+
+def formatuj_czas(iso_tekst):
+    # WHY: status.json trzyma czas w ISO 8601 UTC z mikrosekundami
+    # ("2026-07-12T10:02:32.106056+00:00") - dobre do zapisu, nieczytelne do
+    # wyświetlenia. Pokazujemy w czasie lokalnym serwera, bez mikrosekund, a
+    # dla dzisiejszej daty samą godzinę ze słowem "dziś" zamiast pełnej daty.
+    if not iso_tekst:
+        return iso_tekst
+    try:
+        dt = datetime.fromisoformat(iso_tekst).astimezone()
+    except ValueError:
+        return iso_tekst
+    if dt.date() == datetime.now().astimezone().date():
+        return f"{_('dziś')}, {dt.strftime('%H:%M:%S')}"
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+app.jinja_env.filters["formatuj_czas"] = formatuj_czas
 
 SECRET_KEY_PATH = Path(
     os.environ.get("OLLAMA_MANAGER_SECRET_KEY_FILE", Path(__file__).parent / ".secret_key")

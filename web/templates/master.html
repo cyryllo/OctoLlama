@@ -10,7 +10,7 @@
 
   {% if status %}
     <p><span class="pill {{ 'ok' if status.ok else 'blad' }}">
-      {{ _("Ostatnio zastosowano") }}: {{ status.timestamp }}
+      {{ _("Ostatnio zastosowano") }}: {{ status.timestamp | formatuj_czas }}
       {% if status.zmiany %} — {{ status.zmiany | join("; ") }}{% else %} — {{ _("bez zmian") }}{% endif %}
       {% if status.blad %} — {{ _("Błąd") }}: {{ status.blad }}{% endif %}
     </span></p>
@@ -113,7 +113,7 @@
             <td><span class="pill {{ 'ok' if h.status.ok else 'blad' }}">
               {{ _("działa") if h.status.ollama.service_running else _("zatrzymana") }}
             </span></td>
-            <td>{{ h.status.timestamp }}</td>
+            <td>{{ h.status.timestamp | formatuj_czas }}</td>
           {% else %}
             <td colspan="2"><small>{{ _("brak danych (demon jeszcze nie zapisał statusu)") }}</small></td>
           {% endif %}
