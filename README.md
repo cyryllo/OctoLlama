@@ -89,7 +89,9 @@ The script installs (skipping anything already installed):
 5. `ollama-manager-daemon` — a system `systemd` service (root),
 6. `ollama-manager-web` — a `systemd --user` service, the web panel on port 5000.
 
-Finally, set your login credentials:
+On first install, the script asks you to set your login username/password
+right there (password entered twice, to confirm). To change credentials
+later, run it again by hand:
 
 ```bash
 cd ~/.local/share/ollama-manager-web
@@ -97,6 +99,55 @@ cd ~/.local/share/ollama-manager-web
 ```
 
 The panel will be available at `http://<this-host's-address>:5000`.
+
+### Updating
+
+`git pull` then re-run `./install.sh`. It detects the installed version (from
+the `VERSION` file) against the one in your checkout:
+
+- **older installed** — offers to update (default: yes),
+- **same version** — asks before reinstalling (default: no),
+- **newer installed** — warns before overwriting it with an older one.
+
+### Uninstalling
+
+```bash
+./install.sh --uninstall
+```
+
+Always removes OctoLlama's own daemon and web panel (services, units,
+installed files), then asks separately — each defaulting to **no** — whether
+to also remove: the state directory and NFS exports for remote hosts, LiteLLM,
+Open WebUI, Ollama (**this deletes every downloaded model**), and
+`nfs-kernel-server`. Nothing beyond OctoLlama itself is removed unless you say
+yes.
+
+## Managing the services
+
+Two independent services get installed — the daemon (system, root) and the web
+panel (user, no root):
+
+```bash
+# ollama-manager-daemon (root, system service)
+sudo systemctl status ollama-manager-daemon
+sudo systemctl restart ollama-manager-daemon
+sudo systemctl stop ollama-manager-daemon
+sudo systemctl start ollama-manager-daemon
+sudo journalctl -u ollama-manager-daemon -f      # live log
+
+# ollama-manager-web (user service, no sudo)
+systemctl --user status ollama-manager-web
+systemctl --user restart ollama-manager-web
+systemctl --user stop ollama-manager-web
+systemctl --user start ollama-manager-web
+journalctl --user -u ollama-manager-web -f       # live log
+```
+
+Restarting the web panel does **not** affect the Ollama service itself — the
+daemon keeps enforcing the last state it received from `state.json`
+regardless of whether the panel is running. Stopping the daemon means changes
+made in the panel (start/stop/env variables) won't be applied until it's
+running again.
 
 ## Usage
 

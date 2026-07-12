@@ -15,9 +15,17 @@ from werkzeug.security import generate_password_hash
 
 def main():
     username = input("Nazwa użytkownika: ").strip()
+    if not username:
+        print("Nazwa użytkownika nie może być pusta.")
+        raise SystemExit(1)
+
     password = getpass.getpass("Hasło: ")
-    if not username or not password:
-        print("Nazwa użytkownika i hasło nie mogą być puste.")
+    powtorzone = getpass.getpass("Powtórz hasło: ")
+    if not password:
+        print("Hasło nie może być puste.")
+        raise SystemExit(1)
+    if password != powtorzone:
+        print("Hasła się nie zgadzają.")
         raise SystemExit(1)
 
     CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)

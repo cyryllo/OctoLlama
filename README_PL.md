@@ -87,7 +87,9 @@ Skrypt instaluje (pomijając to, co już jest zainstalowane):
 5. `ollama-manager-daemon` — systemowa usługa `systemd` (root),
 6. `ollama-manager-web` — usługa `systemd --user`, panel WWW na porcie 5000.
 
-Na koniec ustaw dane logowania:
+Przy pierwszej instalacji skrypt sam zapyta o login/hasło (hasło wpisywane
+dwa razy, dla pewności). Żeby zmienić dane logowania później, uruchom to
+ręcznie:
 
 ```bash
 cd ~/.local/share/ollama-manager-web
@@ -95,6 +97,54 @@ cd ~/.local/share/ollama-manager-web
 ```
 
 Panel będzie dostępny pod `http://<adres-tego-hosta>:5000`.
+
+### Aktualizacja
+
+`git pull`, potem ponownie `./install.sh`. Skrypt wykrywa zainstalowaną wersję
+(z pliku `VERSION`) i porównuje z tą w Twoim katalogu:
+
+- **starsza zainstalowana** — proponuje aktualizację (domyślnie: tak),
+- **ta sama wersja** — pyta przed ponowną instalacją (domyślnie: nie),
+- **nowsza zainstalowana** — ostrzega przed nadpisaniem jej starszą.
+
+### Odinstalowanie
+
+```bash
+./install.sh --uninstall
+```
+
+Zawsze usuwa własnego demona i panel WWW OctoLlama (usługi, unit-y,
+zainstalowane pliki), a potem pyta osobno — domyślnie **nie** przy każdym —
+czy usunąć też: katalog stanu i eksporty NFS dla zdalnych hostów, LiteLLM,
+Open WebUI, Ollamę (**to usuwa WSZYSTKIE pobrane modele**) oraz
+`nfs-kernel-server`. Nic poza samym OctoLlama nie zostanie usunięte bez
+Twojej zgody.
+
+## Zarządzanie usługami
+
+Instalują się dwie niezależne usługi — demon (system, root) i panel WWW
+(user, bez roota):
+
+```bash
+# ollama-manager-daemon (root, usługa systemowa)
+sudo systemctl status ollama-manager-daemon
+sudo systemctl restart ollama-manager-daemon
+sudo systemctl stop ollama-manager-daemon
+sudo systemctl start ollama-manager-daemon
+sudo journalctl -u ollama-manager-daemon -f      # log na żywo
+
+# ollama-manager-web (usługa usera, bez sudo)
+systemctl --user status ollama-manager-web
+systemctl --user restart ollama-manager-web
+systemctl --user stop ollama-manager-web
+systemctl --user start ollama-manager-web
+journalctl --user -u ollama-manager-web -f       # log na żywo
+```
+
+Restart panelu WWW **nie** wpływa na samą usługę Ollama — demon nadal
+wymusza ostatni stan otrzymany z `state.json`, niezależnie od tego, czy panel
+akurat działa. Zatrzymanie demona oznacza, że zmiany zrobione w panelu
+(start/stop/zmienne env) nie zostaną zastosowane, dopóki znowu nie zadziała.
 
 ## Użycie
 
