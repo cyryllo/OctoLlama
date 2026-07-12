@@ -10,6 +10,8 @@ from a browser (including your phone). The web-based counterpart to the
 
 *(Polska wersja tego pliku: [README_PL.md](README_PL.md))*
 
+<p align="center"><img src="octollama.png" alt="OctoLlama web panel — Master tab" width="700"></p>
+
 ## Features
 
 - **Ollama service control** — start/stop/autostart, install on demand, every

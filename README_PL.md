@@ -9,6 +9,8 @@ przeglądarki (też z telefonu). Odpowiednik funkcji desktopowej aplikacji
 [Ollama Manager](https://github.com/cyryllo/Ollama-manager) (PyQt6/KDE), tylko
 sterowany przez WWW.
 
+<p align="center"><img src="octollama.png" alt="Panel WWW OctoLlama — zakładka Master" width="700"></p>
+
 ## Funkcje
 
 - **Sterowanie usługą Ollama** — start/stop/autostart, instalacja na żądanie,
