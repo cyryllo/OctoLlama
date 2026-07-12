@@ -85,9 +85,10 @@ Skrypt instaluje (pomijając to, co już jest zainstalowane):
    binarka, uruchomienie zostaje na przycisk w zakładce WebUI panelu),
 4. `nfs-kernel-server` (do obsługi zdalnych hostów),
 5. `ollama-manager-daemon` — systemowa usługa `systemd` (root),
-6. `ollama-manager-web` — usługa `systemd --user`, panel WWW na porcie 5000.
+6. `ollama-manager-web` — usługa `systemd --user`, panel WWW (przy pierwszej
+   instalacji pyta o port, domyślnie 5000 — wystarczy Enter, żeby przyjąć).
 
-Przy pierwszej instalacji skrypt sam zapyta o login/hasło (hasło wpisywane
+Przy pierwszej instalacji skrypt też zapyta o login/hasło (hasło wpisywane
 dwa razy, dla pewności). Żeby zmienić dane logowania później, uruchom to
 ręcznie:
 
@@ -96,7 +97,9 @@ cd ~/.local/share/ollama-manager-web
 ./.venv/bin/python3 manage_users.py
 ```
 
-Panel będzie dostępny pod `http://<adres-tego-hosta>:5000`.
+Panel będzie dostępny pod `http://<adres-tego-hosta>:<port>` (port, który
+wybrałeś, albo domyślnie 5000). Zarówno port, jak i dane logowania są pytane
+tylko raz — ponowne uruchomienie instalatora przy aktualizacji ich nie zresetuje.
 
 ### Aktualizacja
 

@@ -43,6 +43,7 @@ WEB_DIR="$HOME/.local/share/ollama-manager-web"
 WEB_UNIT_DST="$HOME/.config/systemd/user/ollama-manager-web.service"
 
 INSTALLED_VERSION_FILE="$WEB_DIR/VERSION"
+PORT_FILE="$WEB_DIR/PORT"
 
 _compare_versions() {
     # "older"/"same"/"newer" for version $1 relative to $2.
@@ -251,8 +252,25 @@ cp -r "$WEB_SRC/lang/." "$WEB_DIR/lang/"
 [ -f "$WEB_DIR/hosts.json" ] || cp "$WEB_SRC/hosts.json" "$WEB_DIR/"
 [ -d "$WEB_DIR/.venv" ] || python3 -m venv "$WEB_DIR/.venv"
 "$WEB_DIR/.venv/bin/pip" install -q -r "$WEB_DIR/requirements.txt"
+
+# WHY: only ask on a fresh install - re-running the installer to update
+# must NOT silently reset a previously chosen port back to 5000.
+if [ -f "$PORT_FILE" ]; then
+    WEB_PORT="$(cat "$PORT_FILE")"
+else
+    read -r -p "Port for the web panel [5000]: " PORT_INPUT || true
+    WEB_PORT="${PORT_INPUT:-5000}"
+    case "$WEB_PORT" in
+        ''|*[!0-9]*|0)
+            echo "Not a valid port number - using 5000." >&2
+            WEB_PORT=5000
+            ;;
+    esac
+    echo "$WEB_PORT" > "$PORT_FILE"
+fi
+
 mkdir -p "$(dirname "$WEB_UNIT_DST")"
-cp "$WEB_SRC/systemd/ollama-manager-web.service" "$WEB_UNIT_DST"
+sed "s/{{PORT}}/$WEB_PORT/" "$WEB_SRC/systemd/ollama-manager-web.service" > "$WEB_UNIT_DST"
 systemctl --user daemon-reload
 systemctl --user enable ollama-manager-web.service
 systemctl --user restart ollama-manager-web.service
@@ -263,5 +281,5 @@ if [ ! -f "$WEB_DIR/credentials.json" ]; then
     echo "Set your panel login credentials (asked once, password entered twice to confirm):"
     (cd "$WEB_DIR" && ./.venv/bin/python3 manage_users.py)
 fi
-echo "Web panel: http://$(hostname -I 2>/dev/null | awk '{print $1}'):5000"
+echo "Web panel: http://$(hostname -I 2>/dev/null | awk '{print $1}'):$WEB_PORT"
 echo "To uninstall: ./install.sh --uninstall"

@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=%h/.local/share/ollama-manager-web
-ExecStart=%h/.local/share/ollama-manager-web/.venv/bin/waitress-serve --host=0.0.0.0 --port=5000 app:app
+ExecStart=%h/.local/share/ollama-manager-web/.venv/bin/waitress-serve --host=0.0.0.0 --port={{PORT}} app:app
 Restart=on-failure
 RestartSec=5
 

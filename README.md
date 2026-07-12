@@ -87,9 +87,10 @@ The script installs (skipping anything already installed):
    binary, starting it is left to the button in the panel's WebUI tab),
 4. `nfs-kernel-server` (to support remote hosts),
 5. `ollama-manager-daemon` — a system `systemd` service (root),
-6. `ollama-manager-web` — a `systemd --user` service, the web panel on port 5000.
+6. `ollama-manager-web` — a `systemd --user` service, the web panel (asks for
+   a port on first install, default 5000 — just press Enter to accept it).
 
-On first install, the script asks you to set your login username/password
+On first install, the script also asks you to set your login username/password
 right there (password entered twice, to confirm). To change credentials
 later, run it again by hand:
 
@@ -98,7 +99,9 @@ cd ~/.local/share/ollama-manager-web
 ./.venv/bin/python3 manage_users.py
 ```
 
-The panel will be available at `http://<this-host's-address>:5000`.
+The panel will be available at `http://<this-host's-address>:<port>` (the
+port you chose, or 5000 by default). Both the port and the credentials are
+only asked for once — re-running the installer to update won't reset them.
 
 ### Updating
 
