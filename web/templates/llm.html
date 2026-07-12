@@ -57,6 +57,109 @@
   </fieldset>
 
   <fieldset>
+    <legend>{{ _("Balansowanie obciążenia") }}</legend>
+    {% if zbalansowane %}
+      <p><small>{{ _("Te modele są wystawione na więcej niż jednym hoście naraz — LiteLLM sam rozkłada między nie ruch.") }}</small></p>
+      <ul>
+        {% for model, hosty_modelu in zbalansowane.items() %}
+          <li>{{ model }} — {{ _("zbalansowany na {n} hostach").format(n=hosty_modelu|length) }} ({{ hosty_modelu|join(", ") }})</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p><small>{{ _("Żaden wystawiony model nie występuje obecnie na więcej niż jednym hoście.") }}</small></p>
+    {% endif %}
+  </fieldset>
+
+  <fieldset>
+    <legend>{{ _("Routing, fallbacki i niezawodność") }}</legend>
+    <p>
+      <small>{{ _("Ustawienia stosują się dopiero po (re)starcie usługi LiteLLM wyżej — tak samo jak wybór modeli powyżej.") }}</small>
+    </p>
+    <form method="post" action="{{ url_for('llm_zapisz_routing') }}">
+      <label for="routing_strategy">{{ _("Strategia routingu") }}</label>
+      <select id="routing_strategy" name="routing_strategy">
+        {% for s in strategie %}
+          <option value="{{ s }}" {{ "selected" if ustawienia.routing_strategy == s }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <ul>
+        {% for s in strategie %}
+          <li><strong>{{ s }}</strong> — {{ _(opisy_strategii[s]) }}</li>
+        {% endfor %}
+      </ul>
+
+      <label for="num_retries">{{ _("Liczba ponowień przy błędzie") }}</label>
+      <input type="number" id="num_retries" name="num_retries" min="1" step="1" value="{{ ustawienia.num_retries }}">
+
+      <label for="timeout">{{ _("Limit czasu żądania (sekundy)") }}</label>
+      <input type="number" id="timeout" name="timeout" min="1" step="1" value="{{ ustawienia.timeout }}">
+
+      <label for="cooldown_time">{{ _("Czas wychłodzenia hosta po błędzie (sekundy)") }}</label>
+      <input type="number" id="cooldown_time" name="cooldown_time" min="1" step="1" value="{{ ustawienia.cooldown_time }}">
+
+      <label for="allowed_fails">{{ _("Dozwolone błędy przed wychłodzeniem hosta") }}</label>
+      <input type="number" id="allowed_fails" name="allowed_fails" min="1" step="1" value="{{ ustawienia.allowed_fails }}">
+
+      {% if zbalansowane %}
+        <p><strong>{{ _("Priorytet hostów") }}</strong></p>
+        <p><small>{{ _("Niższa liczba = wyższy priorytet. Zostaw puste dla czystego balansowania bez preferowanego hosta.") }}</small></p>
+        {% for model, hosty_modelu in zbalansowane.items() %}
+          <p>
+            {{ model }}:
+            {% for nazwa_hosta in hosty_modelu %}
+              <label>{{ nazwa_hosta }}
+                <input type="number" min="1" step="1" style="width: 5em"
+                       name="priorytet__{{ model }}__{{ nazwa_hosta }}"
+                       value="{{ ustawienia.priorytet.get(model, {}).get(nazwa_hosta, '') }}">
+              </label>
+            {% endfor %}
+          </p>
+        {% endfor %}
+      {% endif %}
+
+      {% if modele_wszystkie %}
+        <p><strong>{{ _("Fallbacki (model zapasowy)") }}</strong></p>
+        <p><small>{{ _("Gdy zapytanie do danego modelu się nie powiedzie, LiteLLM spróbuje wskazanego tu modelu zapasowego.") }}</small></p>
+        {% for model in modele_wszystkie %}
+          <p>
+            {{ model }} →
+            <select name="fallback__{{ model }}">
+              <option value="">{{ _("(brak)") }}</option>
+              {% for inny in modele_wszystkie if inny != model %}
+                <option value="{{ inny }}" {{ "selected" if ustawienia.fallbacks.get(model) == inny }}>{{ inny }}</option>
+              {% endfor %}
+            </select>
+          </p>
+        {% endfor %}
+
+        <p>
+          <label>
+            <input type="checkbox" name="context_window_wlaczone" {{ "checked" if ustawienia.context_window_fallbacks_wlaczone }}>
+            {{ _("Włącz fallback przy przekroczeniu okna kontekstu") }}
+          </label>
+          <br><small>{{ _("Gdy zapytanie przekroczy okno kontekstu małego modelu, LiteLLM automatycznie spróbuje wskazanego tu większego modelu.") }}</small>
+        </p>
+        <p><strong>{{ _("Fallback przy przekroczeniu kontekstu") }}</strong></p>
+        {% for model in modele_wszystkie %}
+          <p>
+            {{ model }} →
+            <select name="context_window__{{ model }}">
+              <option value="">{{ _("(brak)") }}</option>
+              {% for inny in modele_wszystkie if inny != model %}
+                <option value="{{ inny }}" {{ "selected" if ustawienia.context_window_fallbacks.get(model) == inny }}>{{ inny }}</option>
+              {% endfor %}
+            </select>
+          </p>
+        {% endfor %}
+      {% else %}
+        <p><small>{{ _("Zaznacz i zapisz przynajmniej jeden model wyżej, żeby ustawić fallbacki.") }}</small></p>
+      {% endif %}
+
+      <button type="submit" class="primary">{{ _("Zapisz ustawienia routingu") }}</button>
+    </form>
+  </fieldset>
+
+  <fieldset>
     <legend>{{ _("Config dla Continue.dev (VS Code)") }}</legend>
     <p><small>{{ _("Gotowy config.yaml do ręcznego wklejenia w ~/.continue/config.yaml, zbudowany z modeli wystawionych wyżej.") }}</small></p>
     <a href="{{ url_for('llm_config_continue') }}" class="btn primary">{{ _("Pokaż config") }}</a>

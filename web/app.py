@@ -34,6 +34,7 @@ import hosts_store
 import i18n
 import install_generator
 import litellm_manager as litellm
+import litellm_ustawienia
 import openwebui_manager as webui
 import pobierania
 import wol
@@ -414,7 +415,25 @@ def llm_widok():
         "dziala": litellm.dziala(),
         "autostart": litellm.autostart_wlaczony(),
     }
-    return render_template("llm.html", litellm=litellm_stan, siatka=siatka)
+
+    # WHY: zbalansowane/modele_wszystkie liczone z tych samych włączonych
+    # checkboxów co siatka wyżej - fallback/priorytet/context-window w UI mają
+    # wybierać TYLKO spośród modeli faktycznie wystawionych, nie ze wszystkiego,
+    # co jest zainstalowane na hostach (patrz CEL pkt 3-4).
+    zbalansowane = litellm.modele_zbalansowane(hosty)
+    modele_wszystkie = litellm.modele_wystawione(hosty)
+    ustawienia = litellm_ustawienia.wczytaj_ustawienia()
+
+    return render_template(
+        "llm.html",
+        litellm=litellm_stan,
+        siatka=siatka,
+        ustawienia=ustawienia,
+        strategie=litellm_ustawienia.STRATEGIE_ROUTINGU,
+        opisy_strategii=litellm_ustawienia.OPISY_STRATEGII,
+        zbalansowane=zbalansowane,
+        modele_wszystkie=modele_wszystkie,
+    )
 
 
 @app.route("/llm/usluga", methods=["POST"])
@@ -447,6 +466,92 @@ def llm_zapisz_modele():
     for h in hosts_store.wczytaj_hosty():
         modele = request.form.getlist(f"modele__{h['nazwa']}")
         hosts_store.ustaw_modele_llm(h["nazwa"], modele)
+    return redirect(url_for("llm_widok"))
+
+
+@app.route("/llm/zapisz_routing", methods=["POST"])
+@login_required
+def llm_zapisz_routing():
+    # WHY: ustawienia zapisujemy niezależnie od configu YAML - dopiero
+    # start/restart usługi (llm_usluga -> litellm.uruchom/autostart) wywołuje
+    # zapisz_config i realnie je stosuje, tak samo jak dziś działa wybór
+    # modeli w llm_zapisz_modele powyżej.
+    hosty = hosts_store.wczytaj_hosty()
+    modele_wszystkie = litellm.modele_wystawione(hosty)
+    zbalansowane = litellm.modele_zbalansowane(hosty)
+
+    routing_strategy = request.form.get("routing_strategy", "")
+    if routing_strategy not in litellm_ustawienia.STRATEGIE_ROUTINGU:
+        flash(_("Nieprawidłowa strategia routingu."))
+        return redirect(url_for("llm_widok"))
+
+    def _dodatnia_liczba(pole, etykieta):
+        wartosc = request.form.get(pole, "")
+        if not wartosc.isdigit() or int(wartosc) <= 0:
+            raise ValueError(etykieta)
+        return int(wartosc)
+
+    try:
+        num_retries = _dodatnia_liczba("num_retries", _("Liczba ponowień"))
+        timeout = _dodatnia_liczba("timeout", _("Limit czasu"))
+        cooldown_time = _dodatnia_liczba("cooldown_time", _("Czas wychłodzenia"))
+        allowed_fails = _dodatnia_liczba("allowed_fails", _("Dozwolone błędy"))
+    except ValueError as e:
+        flash(
+            _("Nieprawidłowa wartość pola „{pole}” — wymagana liczba całkowita dodatnia.").format(
+                pole=str(e)
+            )
+        )
+        return redirect(url_for("llm_widok"))
+
+    # WHY: fallback/context-window mogą wskazywać TYLKO na inny model z listy
+    # faktycznie wystawionych (nigdy na siebie samego) - inaczej LiteLLM
+    # dostałby odniesienie do modelu, którego nie ma w model_list.
+    fallbacks = {}
+    for model in modele_wszystkie:
+        wybrany = request.form.get(f"fallback__{model}", "").strip()
+        if wybrany and wybrany != model and wybrany in modele_wszystkie:
+            fallbacks[model] = wybrany
+
+    context_window_wlaczone = request.form.get("context_window_wlaczone") == "on"
+    context_window_fallbacks = {}
+    for model in modele_wszystkie:
+        wybrany = request.form.get(f"context_window__{model}", "").strip()
+        if wybrany and wybrany != model and wybrany in modele_wszystkie:
+            context_window_fallbacks[model] = wybrany
+
+    priorytet = {}
+    for model, hosty_modelu in zbalansowane.items():
+        wpisy_hosta = {}
+        for nazwa_hosta in hosty_modelu:
+            wartosc = request.form.get(f"priorytet__{model}__{nazwa_hosta}", "").strip()
+            if not wartosc:
+                continue
+            if not wartosc.isdigit() or int(wartosc) <= 0:
+                flash(
+                    _(
+                        "Priorytet musi być liczbą całkowitą dodatnią ({model} / {host})."
+                    ).format(model=model, host=nazwa_hosta)
+                )
+                return redirect(url_for("llm_widok"))
+            wpisy_hosta[nazwa_hosta] = int(wartosc)
+        if wpisy_hosta:
+            priorytet[model] = wpisy_hosta
+
+    ustawienia = {
+        **litellm_ustawienia.wczytaj_ustawienia(),
+        "routing_strategy": routing_strategy,
+        "num_retries": num_retries,
+        "timeout": timeout,
+        "cooldown_time": cooldown_time,
+        "allowed_fails": allowed_fails,
+        "fallbacks": fallbacks,
+        "context_window_fallbacks_wlaczone": context_window_wlaczone,
+        "context_window_fallbacks": context_window_fallbacks,
+        "priorytet": priorytet,
+    }
+    litellm_ustawienia.zapisz_ustawienia(ustawienia)
+    flash(_("Zapisano ustawienia routingu. Restart usługi LiteLLM zastosuje je w configu."))
     return redirect(url_for("llm_widok"))
 
 

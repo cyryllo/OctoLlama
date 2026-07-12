@@ -8,6 +8,7 @@ web/.venv/
 web/credentials.json
 web/.secret_key
 web/hosts.json
+web/litellm_ustawienia.json
 
 # Stan demona/panelu na tej maszynie - nie dotyczy repo.
 daemon/.venv/

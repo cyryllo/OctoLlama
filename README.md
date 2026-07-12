@@ -165,9 +165,41 @@ The panel has four tabs:
   host's ARP entry when it's reachable, or can be entered manually) and remote
   power off/restart/suspend per host.
 - **LLM** — start/stop the LiteLLM aggregator, choose which models from which
-  hosts get exposed, generate the Continue.dev config.
+  hosts get exposed, generate the Continue.dev config, plus load balancing and
+  reliability settings (see below).
 - **WebUI** — start/stop Open WebUI, wired to LiteLLM (sees the same,
   deliberately selected models, from every host at once).
+
+### Load balancing and reliability (LLM tab)
+
+When the same model (same name and tag, e.g. `qwen2.5-coder:14b`) is exposed
+on more than one host, LiteLLM automatically load-balances requests between
+them — the panel shows this as "balanced across N hosts". On top of that, the
+LLM tab exposes LiteLLM's built-in reliability features:
+
+- **Routing strategy** — how LiteLLM picks a host among the balanced ones:
+  `simple-shuffle` (random, default), `least-busy`, `latency-based-routing`,
+  `usage-based-routing-v2`.
+- **Host priority** — an optional order per host for a balanced model (lower
+  number = higher priority). Leave blank for pure load balancing with no
+  preferred host.
+- **Fallbacks** — an optional backup model for any exposed model, tried when
+  the primary one fails.
+- **Retry / timeout / cooldown** — `num_retries`, request `timeout`,
+  `cooldown_time`, and `allowed_fails` before a host is temporarily cooled
+  down.
+- **Context window fallbacks** (checkbox) — when enabled, a request that
+  exceeds a small model's context window automatically retries against a
+  larger model you pick.
+
+These settings are stored in `web/litellm_ustawienia.json` (not committed,
+same pattern as `hosts.json`) and only take effect after the LiteLLM service
+is (re)started, same as the model selection above. The generator merges its
+own `model_list`/`router_settings`/`litellm_settings` entries into
+`litellm_config.yaml` (tagging its own model entries with
+`model_info.managed_by: octollama`) instead of overwriting the file, so
+manual additions to that file (e.g. another provider's model with its own API
+key, `general_settings`) are preserved across restarts.
 
 ## Repo layout
 
@@ -179,6 +211,7 @@ web/
   app.py                     Routes / view logic (Flask)
   ollama_client.py           Ollama REST API client (models)
   litellm_manager.py         LiteLLM control + Continue.dev config
+  litellm_ustawienia.py      LiteLLM routing/fallback/retry settings storage
   openwebui_manager.py       Open WebUI control (wired to LiteLLM)
   hosts_store.py             Host list (Slave tab)
   install_generator.py       Installer generator for remote hosts

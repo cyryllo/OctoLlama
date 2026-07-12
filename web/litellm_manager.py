@@ -20,13 +20,21 @@ import time
 from pathlib import Path
 
 import requests
+import yaml
 
 import hosts_store
+import litellm_ustawienia
 from i18n import przetlumacz as _
 
 LITELLM_URL = "http://localhost:4000"
 CONFIG_PATH = Path.home() / ".config" / "ollama-manager" / "litellm_config.yaml"
 SERVICE_PATH = Path.home() / ".config" / "systemd" / "user" / "litellm.service"
+
+# WHY: marker w model_info (pole na dowolne metadane, LiteLLM go nie rusza)
+# żeby przy scalaniu configu odróżnić NASZE wpisy model_list od tych, które
+# user dopisał tam ręcznie (patrz _zbuduj_config_dane).
+MARKER_KLUCZ = "managed_by"
+MARKER_WARTOSC = "octollama"
 
 
 def _systemctl_user(args):
@@ -149,22 +157,128 @@ def _yaml_str(tekst):
     return '"' + tekst.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def _zbuduj_config(hosty):
+def modele_zbalansowane(hosty):
+    # WHY: do UI zakładki "LLM" - pokazujemy, które model_name faktycznie
+    # rozkładają ruch na >1 hosta, żeby user widział efekt swojego wyboru
+    # checkboxów, zanim jeszcze zapisze/wystartuje LiteLLM.
     wpisy = _wykryj_modele_wlaczone(hosty)
-    if not wpisy:
-        return "model_list: []\n"
-    linie = ["model_list:"]
-    for _nazwa_hosta, model, adres in wpisy:
-        linie.append(f"  - model_name: {_yaml_str(model)}")
-        linie.append("    litellm_params:")
-        linie.append(f"      model: {_yaml_str('ollama_chat/' + model)}")
-        linie.append(f"      api_base: {_yaml_str(adres)}")
-    return "\n".join(linie) + "\n"
+    hosty_per_model = {}
+    for nazwa_hosta, model, _adres in wpisy:
+        hosty_per_model.setdefault(model, set()).add(nazwa_hosta)
+    return {model: sorted(h) for model, h in hosty_per_model.items() if len(h) > 1}
+
+
+def _czy_nasz_wpis(wpis):
+    return isinstance(wpis, dict) and (wpis.get("model_info") or {}).get(MARKER_KLUCZ) == MARKER_WARTOSC
+
+
+def _wczytaj_istniejacy_config():
+    try:
+        tresc = CONFIG_PATH.read_text()
+    except OSError:
+        return {}
+    try:
+        dane = yaml.safe_load(tresc)
+    except yaml.YAMLError:
+        return {}  # WHY: plik uszkodzony ręczną edycją - traktujemy jak pusty, nie wywalamy zapisu
+    return dane if isinstance(dane, dict) else {}
+
+
+def _zbuduj_model_list(hosty, ustawienia):
+    priorytet = ustawienia.get("priorytet", {})
+    lista = []
+    for nazwa_hosta, model, adres in _wykryj_modele_wlaczone(hosty):
+        litellm_params = {"model": f"ollama_chat/{model}", "api_base": adres}
+        # WHY: order dopisujemy TYLKO gdy user jawnie ustawił priorytet dla
+        # TEGO hosta w TYM modelu - inaczej zostaje czysty load balancing
+        # (patrz CEL pkt 4 - "jeśli nie ustawi kolejności, nie wpisuj order").
+        order = priorytet.get(model, {}).get(nazwa_hosta)
+        if order is not None:
+            litellm_params["order"] = order
+        lista.append(
+            {
+                "model_name": model,
+                "litellm_params": litellm_params,
+                "model_info": {MARKER_KLUCZ: MARKER_WARTOSC},
+            }
+        )
+    return lista
+
+
+def _zbuduj_router_settings(ustawienia):
+    dane = {
+        "routing_strategy": ustawienia.get("routing_strategy", "simple-shuffle"),
+        "num_retries": ustawienia.get("num_retries", 2),
+        "timeout": ustawienia.get("timeout", 600),
+        "cooldown_time": ustawienia.get("cooldown_time", 60),
+        "allowed_fails": ustawienia.get("allowed_fails", 3),
+    }
+    if ustawienia.get("context_window_fallbacks_wlaczone"):
+        dane["enable_pre_call_checks"] = True
+    return dane
+
+
+def _zbuduj_fallback_liste(mapowanie):
+    # WHY: LiteLLM oczekuje listy jednokluczowych słowników {model: [zapasowy]},
+    # nie jednego wspólnego słownika - jeden model teoretycznie mógłby mieć
+    # więcej niż jeden zapasowy wpis, stąd lista jako wartość.
+    return [{model: [zapasowy]} for model, zapasowy in mapowanie.items() if zapasowy]
+
+
+def _zbuduj_litellm_settings(ustawienia):
+    dane = {}
+    fallbacks = _zbuduj_fallback_liste(ustawienia.get("fallbacks", {}))
+    if fallbacks:
+        dane["fallbacks"] = fallbacks
+    if ustawienia.get("context_window_fallbacks_wlaczone"):
+        cwf = _zbuduj_fallback_liste(ustawienia.get("context_window_fallbacks", {}))
+        if cwf:
+            dane["context_window_fallbacks"] = cwf
+    return dane
+
+
+def _zbuduj_config_dane(hosty, ustawienia):
+    # WHY: scalanie zamiast nadpisania - user mógł ręcznie dopisać do configu
+    # własne wpisy (np. model_list z kluczem API zewnętrznego providera,
+    # sekcję general_settings) i nie wolno ich ukraść przy każdym starcie usługi.
+    istniejacy = _wczytaj_istniejacy_config()
+    scalony = dict(istniejacy)
+
+    obce = [w for w in (istniejacy.get("model_list") or []) if not _czy_nasz_wpis(w)]
+    scalony["model_list"] = obce + _zbuduj_model_list(hosty, ustawienia)
+
+    router = dict(istniejacy.get("router_settings") or {})
+    router.update(_zbuduj_router_settings(ustawienia))
+    scalony["router_settings"] = router
+
+    ls = dict(istniejacy.get("litellm_settings") or {})
+    # WHY: kasujemy nasze klucze przed update - jeśli user wyłączył fallback
+    # dla wszystkich modeli, _zbuduj_litellm_settings zwróci słownik bez
+    # klucza "fallbacks" i to ma realnie skasować stary wpis z poprzedniego
+    # zapisu, a nie zostawić go osieroconego.
+    ls.pop("fallbacks", None)
+    ls.pop("context_window_fallbacks", None)
+    ls.update(_zbuduj_litellm_settings(ustawienia))
+    if ls:
+        scalony["litellm_settings"] = ls
+    else:
+        scalony.pop("litellm_settings", None)
+
+    return scalony
 
 
 def zapisz_config(hosty):
+    ustawienia = litellm_ustawienia.wczytaj_ustawienia()
+    dane = _zbuduj_config_dane(hosty, ustawienia)
+    tresc = yaml.safe_dump(dane, sort_keys=False, allow_unicode=True, default_flow_style=False)
+    try:
+        yaml.safe_load(tresc)  # walidacja przed zapisem - patrz CEL, kryteria akceptacji
+    except yaml.YAMLError as e:
+        raise RuntimeError(
+            _("Wygenerowany config LiteLLM jest niepoprawnym YAML-em: {blad}").format(blad=e)
+        )
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(_zbuduj_config(hosty))
+    CONFIG_PATH.write_text(tresc)
 
 
 def modele_wystawione(hosty):
