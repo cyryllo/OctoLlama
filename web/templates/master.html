@@ -8,16 +8,6 @@
     — <a href="{{ url_for('modele_widok', nazwa='master') }}">{{ _("zarządzaj modelami →") }}</a>
   </p>
 
-  {% if status %}
-    <p><span class="pill {{ 'ok' if status.ok else 'blad' }}">
-      {{ _("Ostatnio zastosowano") }}: {{ status.timestamp | formatuj_czas }}
-      {% if status.zmiany %} — {{ status.zmiany | join("; ") }}{% else %} — {{ _("bez zmian") }}{% endif %}
-      {% if status.blad %} — {{ _("Błąd") }}: {{ status.blad }}{% endif %}
-    </span></p>
-  {% else %}
-    <p><small>{{ _("Demon jeszcze nie zapisał status.json na tym hoście.") }}</small></p>
-  {% endif %}
-
   <fieldset>
     <legend>{{ _("Usługa") }}</legend>
     {% if status and not status.ollama.zainstalowana %}
@@ -122,4 +112,14 @@
     </tbody>
   </table>
   <p><small>{{ _("Dodawanie/usuwanie hostów w zakładce") }} <a href="{{ url_for('slave_widok') }}">Slave</a>.</small></p>
+
+  {% if status %}
+    <p><span class="pill {{ 'ok' if status.ok else 'blad' }}">
+      {{ _("Ostatnio zastosowano") }}: {{ status.timestamp | formatuj_czas }}
+      {% if status.zmiany %} — {{ status.zmiany | join("; ") }}{% else %} — {{ _("bez zmian") }}{% endif %}
+      {% if status.blad %} — {{ _("Błąd") }}: {{ status.blad }}{% endif %}
+    </span></p>
+  {% else %}
+    <p><small>{{ _("Demon jeszcze nie zapisał status.json na tym hoście.") }}</small></p>
+  {% endif %}
 {% endblock %}
