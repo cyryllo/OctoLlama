@@ -2,72 +2,74 @@
 
 <p align="center"><img src="logo_octollama.png" alt="OctoLlama" width="600"></p>
 
-Panel WWW do zarządzania [Ollamą](https://ollama.com), agregatorem
-[LiteLLM](https://www.litellm.ai/) i [Open WebUI](https://openwebui.com/) na
-wielu hostach w domowej sieci — bez okienek, logowanie, dostępny z
-przeglądarki (też z telefonu). Odpowiednik funkcji desktopowej aplikacji
-[Ollama Manager](https://github.com/cyryllo/Ollama-manager) (PyQt6/KDE), tylko
-sterowany przez WWW.
+A web panel for managing [Ollama](https://ollama.com), the
+[LiteLLM](https://www.litellm.ai/) aggregator, and [Open WebUI](https://openwebui.com/)
+across multiple hosts on your home network — no desktop app, with login, reachable
+from a browser (including your phone). The web-based counterpart to the
+[Ollama Manager](https://github.com/cyryllo/Ollama-manager) desktop app (PyQt6/KDE).
 
-## Funkcje
+*(Polska wersja tego pliku: [README_PL.md](README_PL.md))*
 
-- **Sterowanie usługą Ollama** — start/stop/autostart, instalacja na żądanie,
-  wszystkie zmienne środowiskowe wpływające na wydajność (kontekst, VRAM,
-  Vulkan/iGPU, KV-cache, dostępność w sieci).
-- **Zarządzanie modelami** — lista, rozmiar, co jest aktualnie w pamięci,
-  pobieranie nowych modeli z paskiem postępu, usuwanie.
-- **Agregator LiteLLM** — jeden endpoint (OpenAI-kompatybilny) nad modelami ze
-  wszystkich hostów naraz; świadomy wybór, które modele mają być wystawione.
-- **Open WebUI** — panel czatu podpięty pod LiteLLM (nie pod pojedynczy host),
-  widzi dokładnie te modele, które wybrałeś do wystawienia.
-- **Config dla Continue.dev** (VS Code) — generowany z aktualnie wystawionych
-  modeli, do ręcznego wklejenia (panel nigdy nie nadpisuje configu użytkownika).
-- **Wielohostowość** — dodawanie zdalnych hostów (np. mini-PC z Ollamą) z
-  automatycznym wygenerowaniem instalatora dla nowej maszyny.
-- **Logowanie** — jeden użytkownik, hash hasła w lokalnym pliku, bez bazy danych.
-- **Wielojęzyczność** — polski i angielski (przełącznik w nagłówku), łatwe do
-  rozszerzenia o kolejne języki.
+## Features
 
-## Jak to działa
+- **Ollama service control** — start/stop/autostart, install on demand, every
+  environment variable that affects performance (context size, VRAM, Vulkan/iGPU,
+  KV cache, network availability).
+- **Model management** — list, size, what's currently loaded in memory, pulling
+  new models with a progress bar, deleting.
+- **LiteLLM aggregator** — a single OpenAI-compatible endpoint over models from
+  every host at once; a deliberate choice of which models get exposed.
+- **Open WebUI** — a chat panel wired to LiteLLM (not to a single host), so it
+  sees exactly the models you chose to expose.
+- **Continue.dev config** (VS Code) — generated from the currently exposed
+  models, for manual pasting (the panel never overwrites the user's config).
+- **Multi-host** — add remote hosts (e.g. a mini-PC running Ollama) with an
+  auto-generated installer for the new machine.
+- **Login** — single user, password hash in a local file, no database.
+- **Multi-language** — Polish and English (switcher in the header), easy to
+  extend with more languages.
 
-Zmiany w usłudze systemd (start/stop, zmienne środowiskowe) wymagają uprawnień
-roota. Zamiast dawać je panelowi WWW, każdy host uruchamia dwa oddzielne procesy:
+## How it works
+
+Changing systemd service state (start/stop, environment variables) requires
+root. Instead of giving the web panel root, each host runs two separate
+processes:
 
 ```
 ┌─────────────────────────────┐         ┌──────────────────────────────┐
 │  ollama-manager-web         │         │  ollama-manager-daemon        │
-│  (user, BEZ roota)          │         │  (root, systemd system unit)  │
+│  (user, NO root)            │         │  (root, systemd system unit)  │
 │                              │         │                                │
-│  - panel WWW + logowanie    │         │  - inotify na plik stanu       │
-│  - operacje na modelach     │  plik   │  - diff: co się zmieniło        │
-│    -> bezpośrednio /api/... │ stanu   │  - override.conf + reload/     │
-│    (bez roota)              │ ──────► │    restart/enable/disable       │
-│  - zapisuje "co user chce"  │ (JSON)  │  - zapisuje status.json z       │
-│    do pliku stanu           │ ◄────── │    wynikiem (OK/błąd)           │
+│  - web panel + login        │         │  - inotify on the state file   │
+│  - model operations         │  state  │  - diff: what changed           │
+│    -> straight to /api/...  │  file   │  - override.conf + reload/     │
+│    (no root needed)         │ ──────► │    restart/enable/disable       │
+│  - writes "what the user    │ (JSON)  │  - writes status.json with      │
+│    wants" to the state file │ ◄────── │    the result (OK/error)        │
 └─────────────────────────────┘ status  └──────────────────────────────┘
                                  .json
 ```
 
-Panel WWW nigdy nie woła `systemctl` bezpośrednio — zapisuje docelowy stan do
-`state.json`, a lokalny root-owy demon go stosuje i raportuje wynik w
-`status.json`. Jedyny kontakt roota ze światem to plik na dysku, zero portu
-sieciowego. Operacje niewymagające roota (modele przez `/api/...`, LiteLLM
-przez `systemd --user`) idą bezpośrednio z panelu.
+The web panel never calls `systemctl` directly — it writes the desired state to
+`state.json`, and a local root-owned daemon applies it and reports the result in
+`status.json`. The only contact root has with the outside world is a file on
+disk, zero network port. Operations that don't need root (models through
+`/api/...`, LiteLLM through `systemd --user`) go straight from the panel.
 
-Dodanie zdalnego hosta (np. mini-PC) działa podobnie: host zarządzający jest
-serwerem NFS, eksportuje osobny katalog per host (ograniczony do jego IP), a
-panel generuje gotowy skrypt instalacyjny z wklejonym kodem demona — do
-uruchomienia raz, ręcznie, na nowej maszynie.
+Adding a remote host (e.g. a mini-PC) works similarly: the management host is
+an NFS server, exports a separate directory per host (restricted to its IP),
+and the panel generates a ready-to-run install script with the daemon's code
+baked in — run once, manually, on the new machine.
 
-## Wymagania
+## Requirements
 
-- Linux z `systemd` (Debian/Ubuntu — instalator używa `apt`).
+- Linux with `systemd` (Debian/Ubuntu — the installer uses `apt`).
 - Python 3.11+.
-- Uprawnienia `sudo` (do instalacji demona, NFS, zależności systemowych).
+- `sudo` privileges (for installing the daemon, NFS, system dependencies).
 
-## Instalacja
+## Installation
 
-Na hoście, który ma być "mastera" (tym, na którym stoi panel WWW):
+On the host that will be the "master" (the one running the web panel):
 
 ```bash
 git clone git@github.com:cyryllo/OctoLlama.git
@@ -75,86 +77,86 @@ cd OctoLlama
 ./install.sh
 ```
 
-Skrypt instaluje (pomijając to, co już jest zainstalowane):
+The script installs (skipping anything already installed):
 
-1. Ollamę (oficjalny installer z ollama.com),
-2. LiteLLM (`uv tool install litellm[proxy]`, bez roota),
-3. Open WebUI (`uv tool install --python 3.11 open-webui`, bez roota — sama
-   binarka, uruchomienie zostaje na przycisk w zakładce WebUI panelu),
-4. `nfs-kernel-server` (do obsługi zdalnych hostów),
-5. `ollama-manager-daemon` — systemowa usługa `systemd` (root),
-6. `ollama-manager-web` — usługa `systemd --user`, panel WWW na porcie 5000.
+1. Ollama (official installer from ollama.com),
+2. LiteLLM (`uv tool install litellm[proxy]`, no root),
+3. Open WebUI (`uv tool install --python 3.11 open-webui`, no root — just the
+   binary, starting it is left to the button in the panel's WebUI tab),
+4. `nfs-kernel-server` (to support remote hosts),
+5. `ollama-manager-daemon` — a system `systemd` service (root),
+6. `ollama-manager-web` — a `systemd --user` service, the web panel on port 5000.
 
-Na koniec ustaw dane logowania:
+Finally, set your login credentials:
 
 ```bash
 cd ~/.local/share/ollama-manager-web
 ./.venv/bin/python3 manage_users.py
 ```
 
-Panel będzie dostępny pod `http://<adres-tego-hosta>:5000`.
+The panel will be available at `http://<this-host's-address>:5000`.
 
-## Użycie
+## Usage
 
-Panel ma cztery zakładki:
+The panel has four tabs:
 
-- **Master** — usługa Ollama i jej zmienne środowiskowe na tym hoście, status
-  wszystkich podłączonych hostów, link do zarządzania modelami.
-- **Slave** — dodawanie/usuwanie zdalnych hostów Ollamy. Po dodaniu hosta
-  panel generuje `install-<nazwa>.sh` — pobierz i uruchom go (przez SSH) na
-  docelowej maszynie; instaluje Ollamę, montuje stan przez NFS i stawia
-  swojego demona.
-- **LLM** — start/stop agregatora LiteLLM, wybór które modele z których
-  hostów mają być wystawione, generowanie configu dla Continue.dev.
-- **WebUI** — start/stop Open WebUI, podpiętego pod LiteLLM (widzi te same,
-  świadomie wybrane modele, ze wszystkich hostów naraz).
+- **Master** — the Ollama service and its environment variables on this host,
+  the status of every connected host, a link to manage models.
+- **Slave** — add/remove remote Ollama hosts. After adding a host, the panel
+  generates `install-<name>.sh` — download and run it (over SSH) on the target
+  machine; it installs Ollama, mounts the state directory over NFS, and sets up
+  its own daemon.
+- **LLM** — start/stop the LiteLLM aggregator, choose which models from which
+  hosts get exposed, generate the Continue.dev config.
+- **WebUI** — start/stop Open WebUI, wired to LiteLLM (sees the same,
+  deliberately selected models, from every host at once).
 
-## Struktura repo
+## Repo layout
 
 ```
 daemon/
-  ollama_manager_daemon.py   Root-owy demon (systemd system unit)
-  systemd/                   Jednostka systemd dla demona
+  ollama_manager_daemon.py   Root-owned daemon (systemd system unit)
+  systemd/                   systemd unit for the daemon
 web/
-  app.py                     Trasy / logika widoków (Flask)
-  ollama_client.py           Klient REST API Ollamy (modele)
-  litellm_manager.py         Sterowanie LiteLLM + config Continue.dev
-  openwebui_manager.py       Sterowanie Open WebUI (podpięte pod LiteLLM)
-  hosts_store.py             Lista hostów (zakładka Slave)
-  install_generator.py       Generator instalatora dla zdalnego hosta
-  state_store.py             Odczyt/zapis state.json / status.json
-  pobierania.py              Śledzenie pobierania modeli w tle
-  i18n.py                    Tłumaczenia (_(), wybór języka w sesji)
-  lang/en.json               Słownik tłumaczeń angielskich
-  templates/                 Szablony Jinja
-  static/style.css           Style (jasny/ciemny motyw)
-install.sh                   Instalator dla hosta zarządzającego
+  app.py                     Routes / view logic (Flask)
+  ollama_client.py           Ollama REST API client (models)
+  litellm_manager.py         LiteLLM control + Continue.dev config
+  openwebui_manager.py       Open WebUI control (wired to LiteLLM)
+  hosts_store.py             Host list (Slave tab)
+  install_generator.py       Installer generator for remote hosts
+  state_store.py             state.json / status.json read/write
+  pobierania.py              Background model-pull progress tracking
+  i18n.py                    Translations (_(), language choice in session)
+  lang/en.json               English translation dictionary
+  templates/                 Jinja templates
+  static/style.css           Styles (light/dark theme)
+install.sh                   Installer for the management host
 ```
 
-## Dodanie kolejnego języka
+## Adding another language
 
-Ten sam wzorzec co [Ollama Manager](https://github.com/cyryllo/Ollama-manager)
-(`lang/*.json` kluczowane polskim tekstem źródłowym): utwórz
-`web/lang/<kod>.json` z tłumaczeniami, dopisz `"<kod>": "nazwa"` do `JEZYKI`
-w `web/i18n.py`. Brak wpisu w słowniku = panel pokazuje oryginał (polski), więc
-niepełne tłumaczenie nigdy nie zostawia pustego miejsca.
+Same pattern as [Ollama Manager](https://github.com/cyryllo/Ollama-manager)
+(`lang/*.json` keyed by the Polish source text): create `web/lang/<code>.json`
+with translations, add `"<code>": "name"` to `JEZYKI` in `web/i18n.py`. A
+missing dictionary entry = the panel shows the original (Polish), so an
+incomplete translation never leaves a blank spot.
 
 ## Status
 
-Działający szkielet — sterowanie usługą, modele, LiteLLM, Open WebUI, config
-Continue.dev i wielohostowość (NFS + generator instalatora) działają
-end-to-end. Ścieżka NFS/zdalny demon nie była jeszcze zweryfikowana na żywym
-sprzęcie. Świadomie pominięte: TLS (do zapewnienia przez reverse proxy przed
-panelem), zarządzanie zasilaniem hostów (Wake-on-LAN).
+A working skeleton — service control, models, LiteLLM, Open WebUI, Continue.dev
+config, and multi-host support (NFS + installer generator) all work end-to-end.
+The NFS/remote-daemon path hasn't been verified on real hardware yet.
+Deliberately left out: TLS (to be handled by a reverse proxy in front of the
+panel), host power management (Wake-on-LAN).
 
-## Powiązane projekty
+## Related projects
 
-- [Ollama Manager](https://github.com/cyryllo/Ollama-manager) — aplikacja
-  desktopowa PyQt6/KDE, źródło logiki sterowania usługą/modelami/LiteLLM
-  przeniesionej tutaj.
+- [Ollama Manager](https://github.com/cyryllo/Ollama-manager) — the PyQt6/KDE
+  desktop app, the source of the service/model/LiteLLM control logic ported
+  here.
 
-## Licencja
+## License
 
-[GNU GPLv3](LICENSE) — ten projekt zawiera logikę przeniesioną z
-[Ollama Managera](https://github.com/cyryllo/Ollama-manager) (GPLv3), więc
-dziedziczy tę samą licencję.
+[GNU GPLv3](LICENSE) — this project contains logic ported from
+[Ollama Manager](https://github.com/cyryllo/Ollama-manager) (GPLv3), so it
+inherits the same license.
