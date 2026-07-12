@@ -31,7 +31,18 @@ def wczytaj_stan():
     try:
         return json.loads(STATE_PATH.read_text())
     except (OSError, json.JSONDecodeError):
-        return json.loads(json.dumps(DOMYSLNY_STAN))  # deep copy
+        stan = json.loads(json.dumps(DOMYSLNY_STAN))  # deep copy
+        # WHY: dopóki panel nigdy niczego nie zapisał, "domyślny" stan MUSI
+        # odzwierciedlać to, co demon realnie zmierzył (patrz status.json) -
+        # inaczej pierwszy zapis JAKIEJKOLWIEK zmiany (nawet samego "Start")
+        # wyzerowałby zmienne środowiskowe, które Ollama miała ustawione
+        # jeszcze PRZED instalacją tego projektu.
+        status = wczytaj_status()
+        if status and "ollama" in status:
+            stan["ollama"]["env"] = status["ollama"].get("env", {})
+            stan["ollama"]["service_running"] = status["ollama"].get("service_running", False)
+            stan["ollama"]["service_enabled"] = status["ollama"].get("service_enabled", False)
+        return stan
 
 
 def zapisz_stan(stan):

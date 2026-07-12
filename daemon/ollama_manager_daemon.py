@@ -220,7 +220,15 @@ def przetworz():
     try:
         cale_dane = json.loads(STATE_PATH.read_text())
     except (OSError, json.JSONDecodeError) as e:
-        log.warning("nie można odczytać %s: %s", STATE_PATH, e)
+        # WHY: brak state.json (świeża instalacja, panel jeszcze niczego nie
+        # zapisał) nie może oznaczać "nie rób nic" bez raportu - status.json
+        # MUSI odzwierciedlać rzeczywistość od razu, żeby panel WWW mógł
+        # pokazać user'owi zmienne środowiskowe, które Ollama miała ustawione
+        # jeszcze PRZED instalacją tego projektu (patrz state_store.wczytaj_stan
+        # w web/, które seeduje "domyślny" stan z tego właśnie status.json -
+        # inaczej pierwszy zapis z panelu wyzerowałby istniejący override.conf).
+        log.warning("nie można odczytać %s: %s - raportuję tylko obecny stan", STATE_PATH, e)
+        zapisz_status(True, [], stan_aktualny())
         return
 
     try:
