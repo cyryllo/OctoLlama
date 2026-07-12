@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block tresc %}
-  <h2>Slave — zdalne hosty Ollamy</h2>
+  <h2>{{ _("Slave — zdalne hosty Ollamy") }}</h2>
 
   <table>
     <thead>
-      <tr><th>Nazwa</th><th>IP</th><th>Usługa</th><th></th></tr>
+      <tr><th>{{ _("Nazwa") }}</th><th>IP</th><th>{{ _("Usługa") }}</th><th></th></tr>
     </thead>
     <tbody>
       {% for h in hosty %}
@@ -14,44 +14,41 @@
           <td>
             {% if h.status %}
               <span class="pill {{ 'ok' if h.status.ok else 'blad' }}">
-                {{ "działa" if h.status.ollama.service_running else "zatrzymana" }}
+                {{ _("działa") if h.status.ollama.service_running else _("zatrzymana") }}
               </span>
             {% else %}
-              <small>brak danych</small>
+              <small>{{ _("brak danych") }}</small>
             {% endif %}
           </td>
           <td>
-            <a href="{{ url_for('modele_widok', nazwa=h.nazwa) }}" class="btn">Modele</a>
-            <a href="{{ url_for('slave_instalator', nazwa=h.nazwa) }}" class="btn">Pobierz instalator</a>
+            <a href="{{ url_for('modele_widok', nazwa=h.nazwa) }}" class="btn">{{ _("Modele") }}</a>
+            <a href="{{ url_for('slave_instalator', nazwa=h.nazwa) }}" class="btn">{{ _("Pobierz instalator") }}</a>
             <form method="post" action="{{ url_for('slave_usun', nazwa=h.nazwa) }}" class="inline">
-              <button type="submit" class="danger">Usuń</button>
+              <button type="submit" class="danger">{{ _("Usuń") }}</button>
             </form>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="4">Brak dodanych hostów.</td></tr>
+        <tr><td colspan="4">{{ _("Brak dodanych hostów.") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
 
   <fieldset>
-    <legend>Dodaj host</legend>
+    <legend>{{ _("Dodaj host") }}</legend>
     <form method="post" action="{{ url_for('slave_dodaj') }}">
-      <label for="nazwa">Nazwa (litery, cyfry, myślniki)</label>
-      <input type="text" id="nazwa" name="nazwa" placeholder="np. bc250" required>
-      <label for="ip">Adres IP</label>
+      <label for="nazwa">{{ _("Nazwa (litery, cyfry, myślniki)") }}</label>
+      <input type="text" id="nazwa" name="nazwa" placeholder="{{ _('np. bc250') }}" required>
+      <label for="ip">{{ _("Adres IP") }}</label>
       <input type="text" id="ip" name="ip" placeholder="np. 192.168.1.50" required>
-      <button type="submit" class="primary">Dodaj</button>
+      <button type="submit" class="primary">{{ _("Dodaj") }}</button>
     </form>
   </fieldset>
 
   <p>
     <small>
-      Po dodaniu pobierz instalator i uruchom go NA docelowej maszynie (np. przez SSH):
-      <code>bash install-&lt;nazwa&gt;.sh</code>. Skrypt instaluje Ollamę, montuje stan
-      przez NFS z tego hosta i stawia ollama-manager-daemon. Wymaga wcześniej
-      skonfigurowanego eksportu NFS na tym hoście (patrz README.md, "Wielohostowość") —
-      to jeszcze nie jest zautomatyzowane z poziomu tego panelu.
+      {{ _("Po dodaniu pobierz instalator i uruchom go NA docelowej maszynie (np. przez SSH):") }}
+      <code>bash install-&lt;nazwa&gt;.sh</code>. {{ _("Skrypt instaluje Ollamę, montuje stan przez NFS z tego hosta i stawia ollama-manager-daemon. Wymaga wcześniej skonfigurowanego eksportu NFS na tym hoście (patrz README.md, \"Wielohostowość\") — to jeszcze nie jest zautomatyzowane z poziomu tego panelu.") }}
     </small>
   </p>
 {% endblock %}

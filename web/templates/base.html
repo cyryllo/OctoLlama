@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pl">
+<html lang="{{ _jezyk_aktualny() }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,9 +12,16 @@
   <div class="container">
     <header class="top">
       <h1><img src="{{ url_for('static', filename='favicon.png') }}" alt="" class="logo-icon">OctoLlama</h1>
-      {% if session.get('zalogowany') %}
-        <span class="uzytkownik">{{ session.get('username') }} — <a href="{{ url_for('logout') }}">wyloguj</a></span>
-      {% endif %}
+      <div class="naglowek-akcje">
+        <select class="jezyk-select" onchange="location.href=this.value">
+          {% for kod, nazwa in JEZYKI.items() %}
+            <option value="{{ url_for('ustaw_jezyk', kod=kod) }}" {{ "selected" if kod == _jezyk_aktualny() }}>{{ kod|upper }}</option>
+          {% endfor %}
+        </select>
+        {% if session.get('zalogowany') %}
+          <a href="{{ url_for('logout') }}" class="btn">{{ _("wyloguj") }}</a>
+        {% endif %}
+      </div>
     </header>
 
     {% if session.get('zalogowany') %}

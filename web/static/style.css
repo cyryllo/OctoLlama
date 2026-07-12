@@ -79,9 +79,25 @@ header.top h1 {
   width: auto;
 }
 
-.uzytkownik {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+.naglowek-akcje {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.naglowek-akcje select,
+.naglowek-akcje .btn {
+  height: 2.3rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
+.jezyk-select {
+  width: auto;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
 }
 
 nav.zakladki {
@@ -186,6 +202,8 @@ button, .btn {
   border-radius: 6px;
   font-size: 0.92rem;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
 }
 
 button:hover, .btn:hover { filter: brightness(0.96); }

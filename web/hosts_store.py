@@ -18,6 +18,8 @@ import json
 import os
 from pathlib import Path
 
+from i18n import przetlumacz as _
+
 HOSTS_PATH = Path(os.environ.get("OLLAMA_MANAGER_HOSTS_FILE", Path(__file__).parent / "hosts.json"))
 HOSTS_STATE_BASE = Path(
     os.environ.get("OLLAMA_MANAGER_HOSTS_STATE_BASE", "/srv/ollama-manager/hosts")
@@ -69,17 +71,19 @@ def znajdz_host(nazwa):
 
 def dodaj_host(nazwa, ip):
     if nazwa == NAZWA_MASTER:
-        raise ValueError(f"Nazwa '{NAZWA_MASTER}' jest zarezerwowana dla tego hosta.")
+        raise ValueError(
+            _("Nazwa '{nazwa}' jest zarezerwowana dla tego hosta.").format(nazwa=NAZWA_MASTER)
+        )
     hosty = wczytaj_hosty()
     if any(h["nazwa"] == nazwa for h in hosty):
-        raise ValueError(f"Host o nazwie '{nazwa}' już istnieje.")
+        raise ValueError(_("Host o nazwie '{nazwa}' już istnieje.").format(nazwa=nazwa))
     hosty.append({"nazwa": nazwa, "ip": ip, "adres": f"http://{ip}:11434", "modele_llm": []})
     zapisz_hosty(hosty)
 
 
 def usun_host(nazwa):
     if nazwa == NAZWA_MASTER:
-        raise ValueError("Nie można usunąć tego hosta (master).")
+        raise ValueError(_("Nie można usunąć tego hosta (master)."))
     hosty = [h for h in wczytaj_hosty() if h["nazwa"] != nazwa]
     zapisz_hosty(hosty)
 

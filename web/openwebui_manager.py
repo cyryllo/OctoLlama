@@ -19,6 +19,7 @@ from pathlib import Path
 
 import requests
 
+from i18n import przetlumacz as _
 from litellm_manager import LITELLM_URL, uv_zapewnij
 
 WEBUI_URL = "http://localhost:8080"
@@ -31,7 +32,10 @@ def _systemctl_user(args):
     )
     if r.returncode != 0:
         raise RuntimeError(
-            r.stderr.strip() or f"systemctl --user {' '.join(args)}: kod wyjścia {r.returncode}"
+            r.stderr.strip()
+            or _("systemctl --user {polecenie}: kod wyjścia {kod}").format(
+                polecenie=" ".join(args), kod=r.returncode
+            )
         )
 
 
@@ -57,7 +61,7 @@ def zainstaluj():
         capture_output=True, text=True, timeout=None,
     )
     if wynik.returncode != 0:
-        raise RuntimeError(wynik.stderr.strip() or "uv tool install: nieznany błąd")
+        raise RuntimeError(wynik.stderr.strip() or _("uv tool install: nieznany błąd"))
 
 
 def dziala():
@@ -82,7 +86,7 @@ def autostart_wlaczony():
 def _zapisz_unit():
     bin_ = binarka()
     if not bin_:
-        raise RuntimeError("Open WebUI nie jest zainstalowane.")
+        raise RuntimeError(_("Open WebUI nie jest zainstalowane."))
     tresc = (
         "[Unit]\n"
         "Description=Open WebUI (podpięte pod LiteLLM)\n"
@@ -110,12 +114,12 @@ def uruchom():
     _systemctl_user(["start", "open-webui.service"])
     # WHY: pierwsze uruchomienie robi migracje bazy i potrafi ściągnąć domyślny
     # model embeddingowy do RAG - 3 minuty zamiast krótszego limitu jak przy LiteLLM.
-    for _ in range(180):
+    for _proba in range(180):
         if dziala():
             return
         time.sleep(1)
     raise RuntimeError(
-        "WebUI nie odpowiedziało w ciągu 3 minut. Log usługi: journalctl --user -u open-webui -e"
+        _("WebUI nie odpowiedziało w ciągu 3 minut. Log usługi: journalctl --user -u open-webui -e")
     )
 
 

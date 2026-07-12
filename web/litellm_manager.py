@@ -22,6 +22,7 @@ from pathlib import Path
 import requests
 
 import hosts_store
+from i18n import przetlumacz as _
 
 LITELLM_URL = "http://localhost:4000"
 CONFIG_PATH = Path.home() / ".config" / "ollama-manager" / "litellm_config.yaml"
@@ -34,7 +35,10 @@ def _systemctl_user(args):
     )
     if r.returncode != 0:
         raise RuntimeError(
-            r.stderr.strip() or f"systemctl --user {' '.join(args)}: kod wyjścia {r.returncode}"
+            r.stderr.strip()
+            or _("systemctl --user {polecenie}: kod wyjścia {kod}").format(
+                polecenie=" ".join(args), kod=r.returncode
+            )
         )
 
 
@@ -59,10 +63,10 @@ def uv_zapewnij():
         capture_output=True, text=True, timeout=None,
     )
     if wynik.returncode != 0:
-        raise RuntimeError(wynik.stderr.strip() or "instalacja uv: nieznany błąd")
+        raise RuntimeError(wynik.stderr.strip() or _("instalacja uv: nieznany błąd"))
     uv = _uv_binarka()
     if not uv:
-        raise RuntimeError("uv zainstalowane, ale binarki nie znaleziono w ~/.local/bin")
+        raise RuntimeError(_("uv zainstalowane, ale binarki nie znaleziono w ~/.local/bin"))
     return uv
 
 
@@ -85,7 +89,7 @@ def zainstaluj():
         capture_output=True, text=True, timeout=None,
     )
     if wynik.returncode != 0:
-        raise RuntimeError(wynik.stderr.strip() or "uv tool install: nieznany błąd")
+        raise RuntimeError(wynik.stderr.strip() or _("uv tool install: nieznany błąd"))
 
 
 def dziala():
@@ -196,7 +200,7 @@ def zbuduj_config_continue(modele):
 def _zapisz_unit():
     bin_ = binarka()
     if not bin_:
-        raise RuntimeError("LiteLLM nie jest zainstalowane.")
+        raise RuntimeError(_("LiteLLM nie jest zainstalowane."))
     tresc = (
         "[Unit]\n"
         "Description=LiteLLM - agregator modeli Ollama (gateway)\n"
@@ -219,12 +223,12 @@ def uruchom():
     zapisz_config(hosty)
     _zapisz_unit()
     _systemctl_user(["restart", "litellm.service"])
-    for _ in range(60):
+    for _proba in range(60):
         if dziala():
             return
         time.sleep(1)
     raise RuntimeError(
-        "LiteLLM nie odpowiedziało w ciągu 60 s. Log usługi: journalctl --user -u litellm -e"
+        _("LiteLLM nie odpowiedziało w ciągu 60 s. Log usługi: journalctl --user -u litellm -e")
     )
 
 

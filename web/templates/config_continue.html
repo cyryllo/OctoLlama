@@ -1,29 +1,21 @@
 {% extends "base.html" %}
 {% block tresc %}
-  <h2>Config dla Continue.dev (VS Code)</h2>
+  <h2>{{ _("Config dla Continue.dev (VS Code)") }}</h2>
 
   {% if not modele %}
-    <p>Brak dostępnych modeli (hosty nieosiągalne albo nic nie zaznaczono w LLM).
-    Sprawdź listę i wybór modeli w zakładce <a href="{{ url_for('llm_widok') }}">LLM</a>.</p>
+    <p>{{ _("Brak dostępnych modeli (hosty nieosiągalne albo nic nie zaznaczono w LLM).") }}
+    {{ _("Sprawdź listę i wybór modeli w zakładce") }} <a href="{{ url_for('llm_widok') }}">LLM</a>.</p>
   {% else %}
     <p>
-      Wklej poniższą treść do pliku <code>~/.continue/config.yaml</code> (nadpisując
-      go całkowicie, albo scalając ręcznie z istniejącą zawartością, jeśli masz tam
-      już inne modele). Panel niczego tu nie zapisuje automatycznie — kliknij w pole
-      poniżej i zaznacz wszystko (Ctrl+A / Cmd+A), żeby skopiować.
+      {{ _("Wklej poniższą treść do pliku") }} <code>~/.continue/config.yaml</code> ({{ _("nadpisując go całkowicie, albo scalając ręcznie z istniejącą zawartością, jeśli masz tam już inne modele). Panel niczego tu nie zapisuje automatycznie — kliknij w pole poniżej i zaznacz wszystko (Ctrl+A / Cmd+A), żeby skopiować.") }}
     </p>
     <p>
       <small>
-        Każdy model dostaje domyślnie role: chat, edit, apply. Dostępne są też inne
-        role do ręcznej zmiany w treści poniżej: autocomplete (podpowiedzi w
-        edytorze), embed (modele embeddingowe, np. nomic-embed-text — używane w
-        RAG), rerank (przeszukiwanie/ranking wyników). Model, który nie służy do
-        czatu/edycji kodu, powinien mieć podmienione <code>roles</code> na
-        odpowiednią z tej listy.
+        {{ _("Każdy model dostaje domyślnie role: chat, edit, apply. Dostępne są też inne role do ręcznej zmiany w treści poniżej: autocomplete (podpowiedzi w edytorze), embed (modele embeddingowe, np. nomic-embed-text — używane w RAG), rerank (przeszukiwanie/ranking wyników). Model, który nie służy do czatu/edycji kodu, powinien mieć podmienione") }} <code>roles</code> {{ _("na odpowiednią z tej listy.") }}
       </small>
     </p>
     <textarea readonly rows="{{ (modele|length) * 8 + 6 }}">{{ tresc }}</textarea>
   {% endif %}
 
-  <p><a href="{{ url_for('llm_widok') }}">← Wróć do LLM</a></p>
+  <p><a href="{{ url_for('llm_widok') }}">{{ _("← Wróć do LLM") }}</a></p>
 {% endblock %}

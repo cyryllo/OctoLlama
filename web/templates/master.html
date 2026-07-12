@@ -1,109 +1,108 @@
 {% extends "base.html" %}
 {% block tresc %}
-  <h2>Ollama (ten host)</h2>
+  <h2>{{ _("Ollama (ten host)") }}</h2>
 
   <p>
-    Usługa: <strong>{{ "działa" if ollama.service_running else "zatrzymana" }}</strong> —
-    autostart: <strong>{{ "włączony" if ollama.service_enabled else "wyłączony" }}</strong>
-    — <a href="{{ url_for('modele_widok', nazwa='master') }}">zarządzaj modelami →</a>
+    {{ _("Usługa") }}: <strong>{{ _("działa") if ollama.service_running else _("zatrzymana") }}</strong> —
+    {{ _("autostart") }}: <strong>{{ _("włączony") if ollama.service_enabled else _("wyłączony") }}</strong>
+    — <a href="{{ url_for('modele_widok', nazwa='master') }}">{{ _("zarządzaj modelami →") }}</a>
   </p>
 
   {% if status %}
     <p><span class="pill {{ 'ok' if status.ok else 'blad' }}">
-      Ostatnio zastosowano: {{ status.timestamp }}
-      {% if status.zmiany %} — {{ status.zmiany | join("; ") }}{% else %} — bez zmian{% endif %}
-      {% if status.blad %} — Błąd: {{ status.blad }}{% endif %}
+      {{ _("Ostatnio zastosowano") }}: {{ status.timestamp }}
+      {% if status.zmiany %} — {{ status.zmiany | join("; ") }}{% else %} — {{ _("bez zmian") }}{% endif %}
+      {% if status.blad %} — {{ _("Błąd") }}: {{ status.blad }}{% endif %}
     </span></p>
   {% else %}
-    <p><small>Demon jeszcze nie zapisał status.json na tym hoście.</small></p>
+    <p><small>{{ _("Demon jeszcze nie zapisał status.json na tym hoście.") }}</small></p>
   {% endif %}
 
   <fieldset>
-    <legend>Usługa</legend>
+    <legend>{{ _("Usługa") }}</legend>
     {% if status and not status.ollama.zainstalowana %}
       <form method="post" action="{{ url_for('master_update') }}" class="inline">
         <input type="hidden" name="akcja" value="zainstaluj_ollama">
-        <button type="submit" class="primary">Zainstaluj Ollamę</button>
+        <button type="submit" class="primary">{{ _("Zainstaluj Ollamę") }}</button>
       </form>
     {% endif %}
     <form method="post" action="{{ url_for('master_update') }}" class="inline">
       <input type="hidden" name="akcja" value="start">
-      <button type="submit" class="primary" {{ "disabled" if ollama.service_running }}>Start</button>
+      <button type="submit" class="primary" {{ "disabled" if ollama.service_running }}>{{ _("Start") }}</button>
     </form>
     <form method="post" action="{{ url_for('master_update') }}" class="inline">
       <input type="hidden" name="akcja" value="stop">
-      <button type="submit" {{ "disabled" if not ollama.service_running }}>Stop</button>
+      <button type="submit" {{ "disabled" if not ollama.service_running }}>{{ _("Stop") }}</button>
     </form>
     <form method="post" action="{{ url_for('master_update') }}" class="inline">
       <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if ollama.service_enabled else 'autostart_wlacz' }}">
-      <button type="submit">{{ "Wyłącz autostart" if ollama.service_enabled else "Włącz autostart" }}</button>
+      <button type="submit">{{ _("Wyłącz autostart") if ollama.service_enabled else _("Włącz autostart") }}</button>
     </form>
   </fieldset>
 
   <fieldset>
-    <legend>Zaawansowane — zmienne środowiskowe usługi Ollama</legend>
+    <legend>{{ _("Zaawansowane — zmienne środowiskowe usługi Ollama") }}</legend>
     <p>
-      Każda zmiana zapisuje override systemd i restartuje usługę (załadowane
-      modele na chwilę znikną z pamięci). Puste pole = domyślne zachowanie Ollamy.
+      {{ _("Każda zmiana zapisuje override systemd i restartuje usługę (załadowane modele na chwilę znikną z pamięci). Puste pole = domyślne zachowanie Ollamy.") }}
     </p>
     <form method="post" action="{{ url_for('master_update') }}">
       <input type="hidden" name="akcja" value="zapisz_env">
 
       <label for="keep_alive">OLLAMA_KEEP_ALIVE</label>
-      <input type="text" id="keep_alive" name="keep_alive" value="{{ ollama.env.get('OLLAMA_KEEP_ALIVE', '') }}" placeholder="np. 30m">
-      <small>Jak długo model zostaje w pamięci po ostatnim zapytaniu (domyślnie kilka minut). np. 30m, 1h, -1 (zawsze), 0 (od razu).</small>
+      <input type="text" id="keep_alive" name="keep_alive" value="{{ ollama.env.get('OLLAMA_KEEP_ALIVE', '') }}" placeholder="{{ _('np. 30m') }}">
+      <small>{{ _("Jak długo model zostaje w pamięci po ostatnim zapytaniu (domyślnie kilka minut). np. 30m, 1h, -1 (zawsze), 0 (od razu).") }}</small>
 
       <label for="context_length">OLLAMA_CONTEXT_LENGTH</label>
-      <input type="text" id="context_length" name="context_length" value="{{ ollama.env.get('OLLAMA_CONTEXT_LENGTH', '') }}" placeholder="np. 32768">
-      <small>Rozmiar okna kontekstu w tokenach (domyślnie 4096 — za mało do pracy agentowej w Continue/OpenCode).</small>
+      <input type="text" id="context_length" name="context_length" value="{{ ollama.env.get('OLLAMA_CONTEXT_LENGTH', '') }}" placeholder="{{ _('np. 32768') }}">
+      <small>{{ _("Rozmiar okna kontekstu w tokenach (domyślnie 4096 — za mało do pracy agentowej w Continue/OpenCode).") }}</small>
 
       <label for="max_loaded_models">OLLAMA_MAX_LOADED_MODELS</label>
-      <input type="text" id="max_loaded_models" name="max_loaded_models" value="{{ ollama.env.get('OLLAMA_MAX_LOADED_MODELS', '') }}" placeholder="np. 1">
-      <small>Ile modeli może być jednocześnie załadowanych do pamięci (domyślnie 3x liczba GPU).</small>
+      <input type="text" id="max_loaded_models" name="max_loaded_models" value="{{ ollama.env.get('OLLAMA_MAX_LOADED_MODELS', '') }}" placeholder="{{ _('np. 1') }}">
+      <small>{{ _("Ile modeli może być jednocześnie załadowanych do pamięci (domyślnie 3x liczba GPU).") }}</small>
 
       <label for="num_parallel">OLLAMA_NUM_PARALLEL</label>
-      <input type="text" id="num_parallel" name="num_parallel" value="{{ ollama.env.get('OLLAMA_NUM_PARALLEL', '') }}" placeholder="np. 1">
-      <small>Ile równoległych zapytań obsłuży jeden załadowany model naraz.</small>
+      <input type="text" id="num_parallel" name="num_parallel" value="{{ ollama.env.get('OLLAMA_NUM_PARALLEL', '') }}" placeholder="{{ _('np. 1') }}">
+      <small>{{ _("Ile równoległych zapytań obsłuży jeden załadowany model naraz.") }}</small>
 
       <label for="flash_attention">OLLAMA_FLASH_ATTENTION</label>
       <select id="flash_attention" name="flash_attention">
-        <option value="" {{ "selected" if not ollama.env.get('OLLAMA_FLASH_ATTENTION') }}>domyślne (auto)</option>
-        <option value="1" {{ "selected" if ollama.env.get('OLLAMA_FLASH_ATTENTION') == "1" }}>włączone</option>
-        <option value="0" {{ "selected" if ollama.env.get('OLLAMA_FLASH_ATTENTION') == "0" }}>wyłączone</option>
+        <option value="" {{ "selected" if not ollama.env.get('OLLAMA_FLASH_ATTENTION') }}>{{ _("domyślne (auto)") }}</option>
+        <option value="1" {{ "selected" if ollama.env.get('OLLAMA_FLASH_ATTENTION') == "1" }}>{{ _("włączone") }}</option>
+        <option value="0" {{ "selected" if ollama.env.get('OLLAMA_FLASH_ATTENTION') == "0" }}>{{ _("wyłączone") }}</option>
       </select>
-      <small>Zmniejsza zużycie pamięci przy dłuższym kontekście, jeśli model i sprzęt to wspierają.</small>
+      <small>{{ _("Zmniejsza zużycie pamięci przy dłuższym kontekście, jeśli model i sprzęt to wspierają.") }}</small>
 
       <label for="kv_cache">OLLAMA_KV_CACHE_TYPE</label>
       <select id="kv_cache" name="kv_cache">
-        <option value="" {{ "selected" if not ollama.env.get('OLLAMA_KV_CACHE_TYPE') }}>domyślne (f16)</option>
+        <option value="" {{ "selected" if not ollama.env.get('OLLAMA_KV_CACHE_TYPE') }}>{{ _("domyślne (f16)") }}</option>
         <option value="q8_0" {{ "selected" if ollama.env.get('OLLAMA_KV_CACHE_TYPE') == "q8_0" }}>q8_0</option>
         <option value="q4_0" {{ "selected" if ollama.env.get('OLLAMA_KV_CACHE_TYPE') == "q4_0" }}>q4_0</option>
       </select>
-      <small>Kwantyzacja pamięci podręcznej kontekstu — q8_0 to ok. -50% zużycia VRAM przy pomijalnej stracie jakości.</small>
+      <small>{{ _("Kwantyzacja pamięci podręcznej kontekstu — q8_0 to ok. -50% zużycia VRAM przy pomijalnej stracie jakości.") }}</small>
 
       <p>
-        <label><input type="checkbox" name="vulkan" {{ "checked" if ollama.env.get('OLLAMA_VULKAN') == "1" }}> Włącz Vulkan (OLLAMA_VULKAN)</label>
-        <br><small>Backend Vulkan zamiast ROCm — szersza kompatybilność z kartami AMD bez pełnego wsparcia ROCm (np. BC-250).</small>
+        <label><input type="checkbox" name="vulkan" {{ "checked" if ollama.env.get('OLLAMA_VULKAN') == "1" }}> {{ _("Włącz Vulkan (OLLAMA_VULKAN)") }}</label>
+        <br><small>{{ _("Backend Vulkan zamiast ROCm — szersza kompatybilność z kartami AMD bez pełnego wsparcia ROCm (np. BC-250).") }}</small>
       </p>
 
       <p>
-        <label><input type="checkbox" name="igpu" {{ "checked" if ollama.env.get('OLLAMA_IGPU_ENABLE') != "false" }}> Włącz iGPU (OLLAMA_IGPU_ENABLE, domyślnie włączone)</label>
-        <br><small>Odznacz, żeby wymusić pominięcie zintegrowanego GPU (np. przy problemach na jednolitej architekturze CPU+GPU jak BC-250).</small>
+        <label><input type="checkbox" name="igpu" {{ "checked" if ollama.env.get('OLLAMA_IGPU_ENABLE') != "false" }}> {{ _("Włącz iGPU (OLLAMA_IGPU_ENABLE, domyślnie włączone)") }}</label>
+        <br><small>{{ _("Odznacz, żeby wymusić pominięcie zintegrowanego GPU (np. przy problemach na jednolitej architekturze CPU+GPU jak BC-250).") }}</small>
       </p>
 
       <p>
-        <label><input type="checkbox" name="host_lan" {{ "checked" if ollama.env.get('OLLAMA_HOST') }}> Zezwól na dostęp spoza komputera — 0.0.0.0 (OLLAMA_HOST)</label>
-        <br><small>Domyślnie Ollama nasłuchuje tylko lokalnie (127.0.0.1). Zaznacz, żeby była dostępna z innych urządzeń w sieci (np. BC-250 jako klient).</small>
+        <label><input type="checkbox" name="host_lan" {{ "checked" if ollama.env.get('OLLAMA_HOST') }}> {{ _("Zezwól na dostęp spoza komputera — 0.0.0.0 (OLLAMA_HOST)") }}</label>
+        <br><small>{{ _("Domyślnie Ollama nasłuchuje tylko lokalnie (127.0.0.1). Zaznacz, żeby była dostępna z innych urządzeń w sieci (np. BC-250 jako klient).") }}</small>
       </p>
 
-      <button type="submit" class="primary">Zastosuj</button>
+      <button type="submit" class="primary">{{ _("Zastosuj") }}</button>
     </form>
   </fieldset>
 
-  <h2>Podłączone hosty</h2>
+  <h2>{{ _("Podłączone hosty") }}</h2>
   <table>
     <thead>
-      <tr><th>Host</th><th>Adres</th><th>Usługa</th><th>Ostatnio</th></tr>
+      <tr><th>{{ _("Host") }}</th><th>{{ _("Adres") }}</th><th>{{ _("Usługa") }}</th><th>{{ _("Ostatnio") }}</th></tr>
     </thead>
     <tbody>
       {% for h in hosty_status %}
@@ -112,15 +111,15 @@
           <td>{{ h.adres }}</td>
           {% if h.status %}
             <td><span class="pill {{ 'ok' if h.status.ok else 'blad' }}">
-              {{ "działa" if h.status.ollama.service_running else "zatrzymana" }}
+              {{ _("działa") if h.status.ollama.service_running else _("zatrzymana") }}
             </span></td>
             <td>{{ h.status.timestamp }}</td>
           {% else %}
-            <td colspan="2"><small>brak danych (demon jeszcze nie zapisał statusu)</small></td>
+            <td colspan="2"><small>{{ _("brak danych (demon jeszcze nie zapisał statusu)") }}</small></td>
           {% endif %}
         </tr>
       {% endfor %}
     </tbody>
   </table>
-  <p><small>Dodawanie/usuwanie hostów w zakładce <a href="{{ url_for('slave_widok') }}">Slave</a>.</small></p>
+  <p><small>{{ _("Dodawanie/usuwanie hostów w zakładce") }} <a href="{{ url_for('slave_widok') }}">Slave</a>.</small></p>
 {% endblock %}

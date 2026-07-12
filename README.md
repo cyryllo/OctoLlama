@@ -1,6 +1,6 @@
 # OctoLlama
 
-<p align="center"><img src="logo_octollama.png" alt="OctoLlama" width="480"></p>
+<p align="center"><img src="logo_octollama.png" alt="OctoLlama" width="600"></p>
 
 Panel WWW do zarządzania [Ollamą](https://ollama.com), agregatorem
 [LiteLLM](https://www.litellm.ai/) i [Open WebUI](https://openwebui.com/) na
@@ -25,6 +25,8 @@ sterowany przez WWW.
 - **Wielohostowość** — dodawanie zdalnych hostów (np. mini-PC z Ollamą) z
   automatycznym wygenerowaniem instalatora dla nowej maszyny.
 - **Logowanie** — jeden użytkownik, hash hasła w lokalnym pliku, bez bazy danych.
+- **Wielojęzyczność** — polski i angielski (przełącznik w nagłówku), łatwe do
+  rozszerzenia o kolejne języki.
 
 ## Jak to działa
 
@@ -77,9 +79,11 @@ Skrypt instaluje (pomijając to, co już jest zainstalowane):
 
 1. Ollamę (oficjalny installer z ollama.com),
 2. LiteLLM (`uv tool install litellm[proxy]`, bez roota),
-3. `nfs-kernel-server` (do obsługi zdalnych hostów),
-4. `ollama-manager-daemon` — systemowa usługa `systemd` (root),
-5. `ollama-manager-web` — usługa `systemd --user`, panel WWW na porcie 5000.
+3. Open WebUI (`uv tool install --python 3.11 open-webui`, bez roota — sama
+   binarka, uruchomienie zostaje na przycisk w zakładce WebUI panelu),
+4. `nfs-kernel-server` (do obsługi zdalnych hostów),
+5. `ollama-manager-daemon` — systemowa usługa `systemd` (root),
+6. `ollama-manager-web` — usługa `systemd --user`, panel WWW na porcie 5000.
 
 Na koniec ustaw dane logowania:
 
@@ -120,10 +124,20 @@ web/
   install_generator.py       Generator instalatora dla zdalnego hosta
   state_store.py             Odczyt/zapis state.json / status.json
   pobierania.py              Śledzenie pobierania modeli w tle
+  i18n.py                    Tłumaczenia (_(), wybór języka w sesji)
+  lang/en.json               Słownik tłumaczeń angielskich
   templates/                 Szablony Jinja
   static/style.css           Style (jasny/ciemny motyw)
 install.sh                   Instalator dla hosta zarządzającego
 ```
+
+## Dodanie kolejnego języka
+
+Ten sam wzorzec co [Ollama Manager](https://github.com/cyryllo/Ollama-manager)
+(`lang/*.json` kluczowane polskim tekstem źródłowym): utwórz
+`web/lang/<kod>.json` z tłumaczeniami, dopisz `"<kod>": "nazwa"` do `JEZYKI`
+w `web/i18n.py`. Brak wpisu w słowniku = panel pokazuje oryginał (polski), więc
+niepełne tłumaczenie nigdy nie zostawia pustego miejsca.
 
 ## Status
 

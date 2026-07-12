@@ -4,38 +4,38 @@
     <meta http-equiv="refresh" content="2">
   {% endif %}
 
-  <h2>Modele — {{ host.nazwa }}{{ " (master)" if host.get("master") }}</h2>
+  <h2>{{ _("Modele") }} — {{ host.nazwa }}{{ " (master)" if host.get("master") }}</h2>
   <p><small>{{ host.adres }}</small></p>
 
   <table>
     <thead>
-      <tr><th>Model</th><th>Rozmiar</th><th>W pamięci</th><th></th></tr>
+      <tr><th>{{ _("Model") }}</th><th>{{ _("Rozmiar") }}</th><th>{{ _("W pamięci") }}</th><th></th></tr>
     </thead>
     <tbody>
       {% for m in modele %}
         <tr>
           <td>{{ m.name }}</td>
           <td>{{ (m.size / (1024**3)) | round(1) }} GB</td>
-          <td>{{ "tak" if m.name in zaladowane else "—" }}</td>
+          <td>{{ _("tak") if m.name in zaladowane else "—" }}</td>
           <td>
             <form method="post" action="{{ url_for('modele_usun', nazwa=host.nazwa) }}" class="inline">
               <input type="hidden" name="model" value="{{ m.name }}">
-              <button type="submit" class="danger">Usuń</button>
+              <button type="submit" class="danger">{{ _("Usuń") }}</button>
             </form>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="4">Brak zainstalowanych modeli (albo host nieosiągalny).</td></tr>
+        <tr><td colspan="4">{{ _("Brak zainstalowanych modeli (albo host nieosiągalny).") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
 
   {% if pobrania %}
     <fieldset>
-      <legend>Pobieranie w toku</legend>
+      <legend>{{ _("Pobieranie w toku") }}</legend>
       {% for model, p in pobrania.items() %}
         <p>
-          <strong>{{ model }}</strong> — {{ p.status }}
+          <strong>{{ model }}</strong> — {{ _(p.status) }}
           {% if p.procent is not none %}({{ p.procent }}%){% endif %}
           {% if p.blad %}<br><span class="pill blad">{{ p.blad }}</span>{% endif %}
         </p>
@@ -44,11 +44,11 @@
   {% endif %}
 
   <fieldset>
-    <legend>Pobierz nowy model</legend>
+    <legend>{{ _("Pobierz nowy model") }}</legend>
     <form method="post" action="{{ url_for('modele_pobierz', nazwa=host.nazwa) }}">
-      <label for="model">Nazwa modelu (jak w <code>ollama pull</code>)</label>
-      <input type="text" id="model" name="model" placeholder="np. llama3.2" required>
-      <button type="submit" class="primary">Pobierz</button>
+      <label for="model">{{ _("Nazwa modelu (jak w") }} <code>ollama pull</code>)</label>
+      <input type="text" id="model" name="model" placeholder="{{ _('np. llama3.2') }}" required>
+      <button type="submit" class="primary">{{ _("Pobierz") }}</button>
     </form>
   </fieldset>
 {% endblock %}

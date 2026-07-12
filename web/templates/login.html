@@ -2,14 +2,14 @@
 {% block tresc %}
   <div class="login-wrap">
     <fieldset>
-      <legend>Logowanie</legend>
+      <legend>{{ _("Logowanie") }}</legend>
       {% if blad %}<p class="pill blad">{{ blad }}</p>{% endif %}
       <form method="post" action="{{ url_for('login') }}">
-        <label for="username">Nazwa użytkownika</label>
+        <label for="username">{{ _("Nazwa użytkownika") }}</label>
         <input type="text" id="username" name="username" required autofocus>
-        <label for="password">Hasło</label>
+        <label for="password">{{ _("Hasło") }}</label>
         <input type="password" id="password" name="password" required>
-        <button type="submit" class="primary">Zaloguj</button>
+        <button type="submit" class="primary">{{ _("Zaloguj") }}</button>
       </form>
     </fieldset>
   </div>

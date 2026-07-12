@@ -1,46 +1,46 @@
 {% extends "base.html" %}
 {% block tresc %}
-  <h2>LiteLLM (gateway)</h2>
+  <h2>{{ _("LiteLLM (gateway)") }}</h2>
   <p>
     {% if not litellm.zainstalowane %}
-      Nie zainstalowane.
+      {{ _("Nie zainstalowane.") }}
     {% else %}
-      Usługa: <strong>{{ "działa" if litellm.dziala else "zatrzymana" }}</strong> —
-      autostart: <strong>{{ "włączony" if litellm.autostart else "wyłączony" }}</strong>
+      {{ _("Usługa") }}: <strong>{{ _("działa") if litellm.dziala else _("zatrzymana") }}</strong> —
+      {{ _("autostart") }}: <strong>{{ _("włączony") if litellm.autostart else _("wyłączony") }}</strong>
     {% endif %}
   </p>
   <fieldset>
-    <legend>Usługa LiteLLM</legend>
+    <legend>{{ _("Usługa LiteLLM") }}</legend>
     {% if not litellm.zainstalowane %}
       <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
         <input type="hidden" name="akcja" value="zainstaluj">
-        <button type="submit" class="primary">Zainstaluj LiteLLM</button>
+        <button type="submit" class="primary">{{ _("Zainstaluj LiteLLM") }}</button>
       </form>
     {% else %}
       <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
         <input type="hidden" name="akcja" value="start">
-        <button type="submit" class="primary" {{ "disabled" if litellm.dziala }}>Start</button>
+        <button type="submit" class="primary" {{ "disabled" if litellm.dziala }}>{{ _("Start") }}</button>
       </form>
       <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
         <input type="hidden" name="akcja" value="stop">
-        <button type="submit" {{ "disabled" if not litellm.dziala }}>Stop</button>
+        <button type="submit" {{ "disabled" if not litellm.dziala }}>{{ _("Stop") }}</button>
       </form>
       <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
         <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if litellm.autostart else 'autostart_wlacz' }}">
-        <button type="submit">{{ "Wyłącz autostart" if litellm.autostart else "Włącz autostart" }}</button>
+        <button type="submit">{{ _("Wyłącz autostart") if litellm.autostart else _("Włącz autostart") }}</button>
       </form>
     {% endif %}
   </fieldset>
 
   <fieldset>
-    <legend>Modele wystawione przez agregator</legend>
-    <p><small>Zaznacz, które modele na których hostach mają być widoczne przez LiteLLM. Start/restart usługi wyżej przebudowuje config z tego wyboru.</small></p>
+    <legend>{{ _("Modele wystawione przez agregator") }}</legend>
+    <p><small>{{ _("Zaznacz, które modele na których hostach mają być widoczne przez LiteLLM. Start/restart usługi wyżej przebudowuje config z tego wyboru.") }}</small></p>
     <form method="post" action="{{ url_for('llm_zapisz_modele') }}">
       {% for host in siatka %}
         <p>
           <strong>{{ host.nazwa }}{{ " (master)" if host.master }}</strong><br>
           {% if not host.modele %}
-            <small>Host nieosiągalny albo bez zainstalowanych modeli.</small>
+            <small>{{ _("Host nieosiągalny albo bez zainstalowanych modeli.") }}</small>
           {% endif %}
           {% for m in host.modele %}
             <label>
@@ -50,15 +50,15 @@
           {% endfor %}
         </p>
       {% else %}
-        <p>Brak hostów — dodaj je w zakładce <a href="{{ url_for('slave_widok') }}">Slave</a>.</p>
+        <p>{{ _("Brak hostów — dodaj je w zakładce") }} <a href="{{ url_for('slave_widok') }}">Slave</a>.</p>
       {% endfor %}
-      <button type="submit" class="primary">Zapisz wybór</button>
+      <button type="submit" class="primary">{{ _("Zapisz wybór") }}</button>
     </form>
   </fieldset>
 
   <fieldset>
-    <legend>Config dla Continue.dev (VS Code)</legend>
-    <p><small>Gotowy config.yaml do ręcznego wklejenia w ~/.continue/config.yaml, zbudowany z modeli wystawionych wyżej.</small></p>
-    <a href="{{ url_for('llm_config_continue') }}" class="btn primary">Pokaż config</a>
+    <legend>{{ _("Config dla Continue.dev (VS Code)") }}</legend>
+    <p><small>{{ _("Gotowy config.yaml do ręcznego wklejenia w ~/.continue/config.yaml, zbudowany z modeli wystawionych wyżej.") }}</small></p>
+    <a href="{{ url_for('llm_config_continue') }}" class="btn primary">{{ _("Pokaż config") }}</a>
   </fieldset>
 {% endblock %}

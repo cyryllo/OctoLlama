@@ -30,15 +30,20 @@ import requests
 from flask import Flask, Response, flash, redirect, render_template, request, session, url_for
 
 import hosts_store
+import i18n
 import install_generator
 import litellm_manager as litellm
 import openwebui_manager as webui
 import pobierania
 from auth import zweryfikuj
+from i18n import przetlumacz as _
 from ollama_client import OllamaClient
 from state_store import wczytaj_stan, wczytaj_status, zapisz_stan, zsynchronizuj_nfs_eksporty
 
 app = Flask(__name__)
+app.jinja_env.globals["_"] = _
+app.jinja_env.globals["JEZYKI"] = i18n.JEZYKI
+app.jinja_env.globals["_jezyk_aktualny"] = i18n.aktualny_jezyk
 
 SECRET_KEY_PATH = Path(
     os.environ.get("OLLAMA_MANAGER_SECRET_KEY_FILE", Path(__file__).parent / ".secret_key")
@@ -73,12 +78,23 @@ def login():
         username = request.form.get("username", "")
         password = request.form.get("password", "")
         if zweryfikuj(username, password):
+            jezyk = session.get("jezyk")  # WHY: session.clear() nie ma wymazać wyboru języka
             session.clear()
             session["zalogowany"] = True
             session["username"] = username
+            if jezyk:
+                session["jezyk"] = jezyk
             return redirect(url_for("master_widok"))
-        blad = "Błędna nazwa użytkownika lub hasło."
+        blad = _("Błędna nazwa użytkownika lub hasło.")
     return render_template("login.html", blad=blad)
+
+
+@app.route("/jezyk/<kod>")
+def ustaw_jezyk(kod):
+    # WHY: bez @login_required - login.html też ma być przetłumaczalny.
+    if kod in i18n.JEZYKI:
+        session["jezyk"] = kod
+    return redirect(request.referrer or url_for("index"))
 
 
 @app.route("/logout")
@@ -196,13 +212,13 @@ def slave_dodaj():
     ip = request.form.get("ip", "").strip()
 
     if not NAZWA_HOSTA_WZORZEC.match(nazwa):
-        flash("Nazwa hosta może zawierać tylko litery, cyfry i myślniki.")
+        flash(_("Nazwa hosta może zawierać tylko litery, cyfry i myślniki."))
         return redirect(url_for("slave_widok"))
 
     try:
         ipaddress.ip_address(ip)
     except ValueError:
-        flash("Nieprawidłowy adres IP.")
+        flash(_("Nieprawidłowy adres IP."))
         return redirect(url_for("slave_widok"))
 
     try:
@@ -230,7 +246,7 @@ def slave_usun(nazwa):
 def slave_instalator(nazwa):
     host = hosts_store.znajdz_host(nazwa)
     if not host or host.get("master"):
-        flash("Nie znaleziono takiego hosta.")
+        flash(_("Nie znaleziono takiego hosta."))
         return redirect(url_for("slave_widok"))
 
     tresc = install_generator.zbuduj_install_script(host["nazwa"], host["ip"])
@@ -368,7 +384,7 @@ def _host_i_klient(nazwa):
 def modele_widok(nazwa):
     host, klient = _host_i_klient(nazwa)
     if not host:
-        flash("Nie znaleziono takiego hosta.")
+        flash(_("Nie znaleziono takiego hosta."))
         return redirect(url_for("master_widok"))
 
     modele = klient.list_models()
@@ -387,13 +403,13 @@ def modele_widok(nazwa):
 @app.route("/modele/<nazwa>/usun", methods=["POST"])
 @login_required
 def modele_usun(nazwa):
-    _, klient = _host_i_klient(nazwa)
+    _host, klient = _host_i_klient(nazwa)
     model = request.form.get("model", "")
     if klient:
         try:
             klient.delete_model(model)
         except requests.RequestException as e:
-            flash(f"Błąd usuwania {model}: {e}")
+            flash(_("Błąd usuwania {model}: {blad}").format(model=model, blad=e))
     return redirect(url_for("modele_widok", nazwa=nazwa))
 
 
