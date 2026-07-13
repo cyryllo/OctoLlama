@@ -466,16 +466,23 @@ def llm_zapisz_modele():
     for h in hosts_store.wczytaj_hosty():
         modele = request.form.getlist(f"modele__{h['nazwa']}")
         hosts_store.ustaw_modele_llm(h["nazwa"], modele)
+    # WHY: bez tego user musiał ręcznie kliknąć Restart obok, żeby wybór
+    # checkboxów faktycznie trafił do configu LiteLLM - restartujemy tylko
+    # gdy usługa już działa, bo zatrzymanej nie ma sensu uruchamiać przy okazji.
+    if litellm.dziala():
+        try:
+            litellm.uruchom()
+        except RuntimeError as e:
+            flash(str(e))
     return redirect(url_for("llm_widok"))
 
 
 @app.route("/llm/zapisz_routing", methods=["POST"])
 @login_required
 def llm_zapisz_routing():
-    # WHY: ustawienia zapisujemy niezależnie od configu YAML - dopiero
-    # start/restart usługi (llm_usluga -> litellm.uruchom/autostart) wywołuje
-    # zapisz_config i realnie je stosuje, tak samo jak dziś działa wybór
-    # modeli w llm_zapisz_modele powyżej.
+    # WHY: ustawienia zapisujemy niezależnie od configu YAML - żeby faktycznie
+    # zadziałały, poniżej wywołujemy restart usługi, jeśli akurat działa (tak
+    # samo jak wybór modeli w llm_zapisz_modele powyżej).
     hosty = hosts_store.wczytaj_hosty()
     modele_wszystkie = litellm.modele_wystawione(hosty)
     zbalansowane = litellm.modele_zbalansowane(hosty)
@@ -551,7 +558,14 @@ def llm_zapisz_routing():
         "priorytet": priorytet,
     }
     litellm_ustawienia.zapisz_ustawienia(ustawienia)
-    flash(_("Zapisano ustawienia routingu. Restart usługi LiteLLM zastosuje je w configu."))
+    if litellm.dziala():
+        try:
+            litellm.uruchom()
+            flash(_("Zapisano ustawienia routingu i zrestartowano usługę LiteLLM."))
+        except RuntimeError as e:
+            flash(str(e))
+    else:
+        flash(_("Zapisano ustawienia routingu. Zostaną zastosowane przy starcie usługi LiteLLM."))
     return redirect(url_for("llm_widok"))
 
 

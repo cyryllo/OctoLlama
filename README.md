@@ -195,8 +195,8 @@ LLM tab exposes LiteLLM's built-in reliability features:
   larger model you pick.
 
 These settings are stored in `web/litellm_ustawienia.json` (not committed,
-same pattern as `hosts.json`) and only take effect after the LiteLLM service
-is (re)started, same as the model selection above. The generator merges its
+same pattern as `hosts.json`). Saving them immediately restarts the running
+LiteLLM service with the new config, same as the model selection above. The generator merges its
 own `model_list`/`router_settings`/`litellm_settings` entries into
 `litellm_config.yaml` (tagging its own model entries with
 `model_info.managed_by: octollama`) instead of overwriting the file, so

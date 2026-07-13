@@ -116,9 +116,9 @@ ustawienia dostrajające to zachowanie:
   opcji każe LiteLLM automatycznie spróbować wskazanego większego modelu
   zamiast po prostu zwrócić błąd.
 
-**Ważne:** te ustawienia zapisują się od razu, ale **zaczynają obowiązywać
-dopiero po (re)starcie usługi LiteLLM** w tej samej zakładce (przycisk
-Start/Stop wyżej) — dokładnie tak samo, jak zmiana wyboru wystawionych modeli.
+**Ważne:** zapis tych ustawień (i wyboru wystawionych modeli wyżej) **od razu
+restartuje działającą usługę LiteLLM**, więc zmiany obowiązują natychmiast —
+nie trzeba osobno klikać Start/Stop wyżej.
 Jeśli w `~/.config/octollama/litellm_config.yaml` masz coś dopisanego
 ręcznie (np. model innego dostawcy z własnym kluczem API), panel tego nie
 nadpisze — scala swoje wpisy z Twoimi przy każdym starcie usługi.
@@ -146,7 +146,7 @@ Continue.dev → wklej ją u siebie.
 
 **Mam ten sam model na dwóch komputerach i chcę, żeby to miało sens.**
 Zakładka LLM → zaznacz ten model na obu hostach (checkboxy w sekcji
-"Modele wystawione") → zapisz i zrestartuj LiteLLM. Panel od razu pokaże
+"Modele wystawione") → zapisz wybór. Panel od razu pokaże
 "zbalansowany na 2 hostach" — LiteLLM sam rozkłada zapytania. Opcjonalnie
 możesz jeszcze ustawić priorytet (np. szybszy komputer jako "1") albo
 fallback na inny, mniejszy model, gdyby oba hosty akurat zawiodły.

@@ -19,7 +19,7 @@
     {% else %}
       <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
         <input type="hidden" name="akcja" value="start">
-        <button type="submit" class="primary" {{ "disabled" if litellm.dziala }}>{{ _("Start") }}</button>
+        <button type="submit" class="primary">{{ _("Restart") if litellm.dziala else _("Start") }}</button>
       </form>
       <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
         <input type="hidden" name="akcja" value="stop">
@@ -34,7 +34,7 @@
 
   <fieldset>
     <legend>{{ _("Modele wystawione przez agregator") }}</legend>
-    <p><small>{{ _("Zaznacz, które modele na których hostach mają być widoczne przez LiteLLM. Start/restart usługi wyżej przebudowuje config z tego wyboru.") }}</small></p>
+    <p><small>{{ _("Zaznacz, które modele na których hostach mają być widoczne przez LiteLLM. Zapis wyboru od razu restartuje działającą usługę z nowym configiem.") }}</small></p>
     <form method="post" action="{{ url_for('llm_zapisz_modele') }}">
       {% for host in siatka %}
         <p>
@@ -73,7 +73,7 @@
   <fieldset>
     <legend>{{ _("Routing, fallbacki i niezawodność") }}</legend>
     <p>
-      <small>{{ _("Ustawienia stosują się dopiero po (re)starcie usługi LiteLLM wyżej — tak samo jak wybór modeli powyżej.") }}</small>
+      <small>{{ _("Zapis ustawień od razu restartuje działającą usługę LiteLLM z nowym configiem — tak samo jak wybór modeli powyżej.") }}</small>
     </p>
     <form method="post" action="{{ url_for('llm_zapisz_routing') }}">
       <label for="routing_strategy">{{ _("Strategia routingu") }}</label>

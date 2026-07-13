@@ -104,7 +104,7 @@
   "zarządzaj modelami →": "manage models →",
   "Zastosuj": "Apply",
   "zatrzymana": "stopped",
-  "Zaznacz, które modele na których hostach mają być widoczne przez LiteLLM. Start/restart usługi wyżej przebudowuje config z tego wyboru.": "Check which models on which hosts should be visible through LiteLLM. Starting/restarting the service above rebuilds the config from this selection.",
+  "Zaznacz, które modele na których hostach mają być widoczne przez LiteLLM. Zapis wyboru od razu restartuje działającą usługę z nowym configiem.": "Check which models on which hosts should be visible through LiteLLM. Saving the selection immediately restarts the running service with the new config.",
   "ze wszystkich hostów naraz.": "tab, from all hosts at once.",
   "Zezwól na dostęp spoza komputera — 0.0.0.0 (OLLAMA_HOST)": "Allow access from outside this computer — 0.0.0.0 (OLLAMA_HOST)",
   "Zmniejsza zużycie pamięci przy dłuższym kontekście, jeśli model i sprzęt to wspierają.": "Reduces memory usage with longer context, if the model and hardware support it.",
@@ -135,7 +135,7 @@
   "zbalansowany na {n} hostach": "balanced across {n} hosts",
   "Żaden wystawiony model nie występuje obecnie na więcej niż jednym hoście.": "None of the exposed models currently run on more than one host.",
   "Routing, fallbacki i niezawodność": "Routing, fallbacks and reliability",
-  "Ustawienia stosują się dopiero po (re)starcie usługi LiteLLM wyżej — tak samo jak wybór modeli powyżej.": "Settings only take effect after (re)starting the LiteLLM service above — same as the model selection above.",
+  "Zapis ustawień od razu restartuje działającą usługę LiteLLM z nowym configiem — tak samo jak wybór modeli powyżej.": "Saving the settings immediately restarts the running LiteLLM service with the new config — same as the model selection above.",
   "Strategia routingu": "Routing strategy",
   "Liczba ponowień przy błędzie": "Number of retries on error",
   "Limit czasu żądania (sekundy)": "Request timeout (seconds)",
@@ -162,6 +162,7 @@
   "Dozwolone błędy": "Allowed failures",
   "Nieprawidłowa wartość pola „{pole}” — wymagana liczba całkowita dodatnia.": "Invalid value for field “{pole}” — a positive whole number is required.",
   "Priorytet musi być liczbą całkowitą dodatnią ({model} / {host}).": "Priority must be a positive whole number ({model} / {host}).",
-  "Zapisano ustawienia routingu. Restart usługi LiteLLM zastosuje je w configu.": "Routing settings saved. Restarting the LiteLLM service will apply them to the config.",
+  "Zapisano ustawienia routingu i zrestartowano usługę LiteLLM.": "Routing settings saved and the LiteLLM service was restarted.",
+  "Zapisano ustawienia routingu. Zostaną zastosowane przy starcie usługi LiteLLM.": "Routing settings saved. They will be applied when the LiteLLM service starts.",
   "Wygenerowany config LiteLLM jest niepoprawnym YAML-em: {blad}": "The generated LiteLLM config is not valid YAML: {blad}"
 }

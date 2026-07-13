@@ -125,9 +125,10 @@ settings to fine-tune this behavior:
   automatically try the larger model you picked instead of just returning
   an error.
 
-**Important:** these settings save immediately, but they only **take effect
-after the LiteLLM service is (re)started** in the same tab (the Start/Stop
-button above) — exactly like changing which models are exposed. If you have
+**Important:** saving these settings (or changing which models are exposed
+above) **immediately restarts the running LiteLLM service** with the new
+config, so changes take effect right away — no need to click Start/Stop
+separately. If you have
 something added by hand in
 `~/.config/octollama/litellm_config.yaml` (e.g. another provider's
 model with its own API key), the panel won't overwrite it — it merges its
@@ -155,7 +156,7 @@ config → paste it on your machine.
 
 **I have the same model on two computers and want it to actually matter.**
 LLM tab → check that model on both hosts (checkboxes in the "Exposed
-models" section) → save and restart LiteLLM. The panel immediately shows
+models" section) → save selection. The panel immediately shows
 "balanced across 2 hosts" — LiteLLM spreads requests on its own. Optionally
 you can also set a priority (e.g. your faster computer as "1") or a
 fallback to a smaller model, in case both hosts happen to fail.

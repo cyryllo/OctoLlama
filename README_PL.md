@@ -191,8 +191,8 @@ LLM udostępnia wbudowane w LiteLLM mechanizmy niezawodności:
   ponawia próbę na wskazanym większym modelu.
 
 Te ustawienia trzymane są w `web/litellm_ustawienia.json` (niecommitowany,
-ten sam wzorzec co `hosts.json`) i stosują się dopiero po (re)starcie usługi
-LiteLLM, tak samo jak wybór modeli wyżej. Generator scala własne wpisy
+ten sam wzorzec co `hosts.json`). Zapis od razu restartuje działającą usługę
+LiteLLM z nowym configiem, tak samo jak wybór modeli wyżej. Generator scala własne wpisy
 `model_list`/`router_settings`/`litellm_settings` do `litellm_config.yaml`
 (oznaczając swoje wpisy modeli przez `model_info.managed_by: octollama`)
 zamiast nadpisywać cały plik, więc ręczne dopiski do tego pliku (np. model
