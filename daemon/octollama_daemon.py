@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ollama-manager-daemon — lokalny, root-owy demon sterujący usługą Ollama na tym hoście.
+"""octollama-daemon — lokalny, root-owy demon sterujący usługą Ollama na tym hoście.
 
 Czyta docelowy stan z state.json (zapisywanego przez panel WWW, dostarczanego tu
 przez montaż NFS — patrz README.md, sekcja "Wielohostowość"), porównuje z aktualnym
@@ -23,20 +23,20 @@ SERVICE_NAME = "ollama"
 # WHY: ta sama zmienna środowiskowa co w web/state_store.py — oba procesy muszą
 # patrzeć na ten sam katalog (lokalny na workstation, zamontowany NFS na hostach
 # zdalnych jak BC-250).
-STATE_DIR = Path(os.environ.get("OLLAMA_MANAGER_STATE_DIR", "/var/lib/ollama-manager/state"))
+STATE_DIR = Path(os.environ.get("OCTOLLAMA_STATE_DIR", "/var/lib/octollama/state"))
 STATE_PATH = STATE_DIR / "state.json"
 STATUS_PATH = STATE_DIR / "status.json"
 OVERRIDE_PATH = Path("/etc/systemd/system") / f"{SERVICE_NAME}.service.d" / "override.conf"
 
-# WHY: ta sama zmienna co OLLAMA_MANAGER_HOSTS_STATE_BASE w web/hosts_store.py -
+# WHY: ta sama zmienna co OCTOLLAMA_HOSTS_STATE_BASE w web/hosts_store.py -
 # to katalog, w którym workstation (serwer NFS) trzyma stan każdego zdalnego hosta.
-HOSTS_BASE = Path(os.environ.get("OLLAMA_MANAGER_HOSTS_STATE_BASE", "/srv/ollama-manager/hosts"))
+HOSTS_BASE = Path(os.environ.get("OCTOLLAMA_HOSTS_STATE_BASE", "/srv/octollama/hosts"))
 # WHY: /etc/exports.d/*.exports to natywny, udokumentowany mechanizm nfs-utils
 # (exports(5)) na dołączanie eksportów BEZ dotykania głównego /etc/exports -
 # zero ryzyka nadpisania eksportów administratora niezwiązanych z tym projektem.
-EXPORTS_PLIK = Path("/etc/exports.d/ollama-manager.exports")
+EXPORTS_PLIK = Path("/etc/exports.d/octollama.exports")
 
-log = logging.getLogger("ollama-manager-daemon")
+log = logging.getLogger("octollama-daemon")
 
 
 # =============================================================================
@@ -143,7 +143,7 @@ def zastosuj(docelowy, obecny, zmiany):
 #  fizycznie nie może zamontować cudzego katalogu, patrz README "Wielohostowość").
 # =============================================================================
 def _tresc_exports(hosty_nfs):
-    linie = ["# Zarządzane przez ollama-manager-daemon - NIE EDYTUJ RĘCZNIE.\n"]
+    linie = ["# Zarządzane przez octollama-daemon - NIE EDYTUJ RĘCZNIE.\n"]
     for h in hosty_nfs:
         sciezka = HOSTS_BASE / h["nazwa"]
         linie.append(f'{sciezka} {h["ip"]}(rw,sync,no_subtree_check,root_squash)\n')

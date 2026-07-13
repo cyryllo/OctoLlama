@@ -20,9 +20,9 @@ from pathlib import Path
 
 from i18n import przetlumacz as _
 
-HOSTS_PATH = Path(os.environ.get("OLLAMA_MANAGER_HOSTS_FILE", Path(__file__).parent / "hosts.json"))
+HOSTS_PATH = Path(os.environ.get("OCTOLLAMA_HOSTS_FILE", Path(__file__).parent / "hosts.json"))
 HOSTS_STATE_BASE = Path(
-    os.environ.get("OLLAMA_MANAGER_HOSTS_STATE_BASE", "/srv/ollama-manager/hosts")
+    os.environ.get("OCTOLLAMA_HOSTS_STATE_BASE", "/srv/octollama/hosts")
 )
 
 NAZWA_MASTER = "master"
@@ -128,7 +128,7 @@ def ustaw_zasilanie(nazwa, akcja):
     # WHY: wyłączenie/restart/uśpienie to operacja uprzywilejowana na TAMTYM
     # hoście - panel WWW nie woła niczego bezpośrednio, tylko zapisuje żądanie
     # do state.json tego hosta; jego lokalny demon je stosuje i SAM kasuje flagę
-    # przed wykonaniem (patrz daemon/ollama_manager_daemon.py,
+    # przed wykonaniem (patrz daemon/octollama_daemon.py,
     # zastosuj_zasilanie) - inaczej po wybudzeniu maszyna wyłączyłaby się od razu
     # ponownie, widząc tę samą, nieskasowaną flagę.
     sciezka = _sciezka_state_hosta(nazwa)

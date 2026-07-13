@@ -41,7 +41,7 @@ processes:
 
 ```
 ┌─────────────────────────────┐         ┌──────────────────────────────┐
-│  ollama-manager-web         │         │  ollama-manager-daemon        │
+│  octollama-web              │         │  octollama-daemon            │
 │  (user, NO root)            │         │  (root, systemd system unit)  │
 │                              │         │                                │
 │  - web panel + login        │         │  - inotify on the state file   │
@@ -88,8 +88,8 @@ The script installs (skipping anything already installed):
 3. Open WebUI (`uv tool install --python 3.11 open-webui`, no root — just the
    binary, starting it is left to the button in the panel's WebUI tab),
 4. `nfs-kernel-server` (to support remote hosts),
-5. `ollama-manager-daemon` — a system `systemd` service (root),
-6. `ollama-manager-web` — a `systemd --user` service, the web panel (asks for
+5. `octollama-daemon` — a system `systemd` service (root),
+6. `octollama-web` — a `systemd --user` service, the web panel (asks for
    a port on first install, default 5000 — just press Enter to accept it).
 
 On first install, the script also asks you to set your login username/password
@@ -97,7 +97,7 @@ right there (password entered twice, to confirm). To change credentials
 later, run it again by hand:
 
 ```bash
-cd ~/.local/share/ollama-manager-web
+cd ~/.local/share/octollama-web
 ./.venv/bin/python3 manage_users.py
 ```
 
@@ -133,19 +133,19 @@ Two independent services get installed — the daemon (system, root) and the web
 panel (user, no root):
 
 ```bash
-# ollama-manager-daemon (root, system service)
-sudo systemctl status ollama-manager-daemon
-sudo systemctl restart ollama-manager-daemon
-sudo systemctl stop ollama-manager-daemon
-sudo systemctl start ollama-manager-daemon
-sudo journalctl -u ollama-manager-daemon -f      # live log
+# octollama-daemon (root, system service)
+sudo systemctl status octollama-daemon
+sudo systemctl restart octollama-daemon
+sudo systemctl stop octollama-daemon
+sudo systemctl start octollama-daemon
+sudo journalctl -u octollama-daemon -f      # live log
 
-# ollama-manager-web (user service, no sudo)
-systemctl --user status ollama-manager-web
-systemctl --user restart ollama-manager-web
-systemctl --user stop ollama-manager-web
-systemctl --user start ollama-manager-web
-journalctl --user -u ollama-manager-web -f       # live log
+# octollama-web (user service, no sudo)
+systemctl --user status octollama-web
+systemctl --user restart octollama-web
+systemctl --user stop octollama-web
+systemctl --user start octollama-web
+journalctl --user -u octollama-web -f       # live log
 ```
 
 Restarting the web panel does **not** affect the Ollama service itself — the
@@ -207,7 +207,7 @@ key, `general_settings`) are preserved across restarts.
 
 ```
 daemon/
-  ollama_manager_daemon.py   Root-owned daemon (systemd system unit)
+  octollama_daemon.py   Root-owned daemon (systemd system unit)
   systemd/                   systemd unit for the daemon
 web/
   app.py                     Routes / view logic (Flask)

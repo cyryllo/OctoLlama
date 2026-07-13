@@ -39,7 +39,7 @@ roota. Zamiast dawać je panelowi WWW, każdy host uruchamia dwa oddzielne proce
 
 ```
 ┌─────────────────────────────┐         ┌──────────────────────────────┐
-│  ollama-manager-web         │         │  ollama-manager-daemon        │
+│  octollama-web              │         │  octollama-daemon            │
 │  (user, BEZ roota)          │         │  (root, systemd system unit)  │
 │                              │         │                                │
 │  - panel WWW + logowanie    │         │  - inotify na plik stanu       │
@@ -86,8 +86,8 @@ Skrypt instaluje (pomijając to, co już jest zainstalowane):
 3. Open WebUI (`uv tool install --python 3.11 open-webui`, bez roota — sama
    binarka, uruchomienie zostaje na przycisk w zakładce WebUI panelu),
 4. `nfs-kernel-server` (do obsługi zdalnych hostów),
-5. `ollama-manager-daemon` — systemowa usługa `systemd` (root),
-6. `ollama-manager-web` — usługa `systemd --user`, panel WWW (przy pierwszej
+5. `octollama-daemon` — systemowa usługa `systemd` (root),
+6. `octollama-web` — usługa `systemd --user`, panel WWW (przy pierwszej
    instalacji pyta o port, domyślnie 5000 — wystarczy Enter, żeby przyjąć).
 
 Przy pierwszej instalacji skrypt też zapyta o login/hasło (hasło wpisywane
@@ -95,7 +95,7 @@ dwa razy, dla pewności). Żeby zmienić dane logowania później, uruchom to
 ręcznie:
 
 ```bash
-cd ~/.local/share/ollama-manager-web
+cd ~/.local/share/octollama-web
 ./.venv/bin/python3 manage_users.py
 ```
 
@@ -131,19 +131,19 @@ Instalują się dwie niezależne usługi — demon (system, root) i panel WWW
 (user, bez roota):
 
 ```bash
-# ollama-manager-daemon (root, usługa systemowa)
-sudo systemctl status ollama-manager-daemon
-sudo systemctl restart ollama-manager-daemon
-sudo systemctl stop ollama-manager-daemon
-sudo systemctl start ollama-manager-daemon
-sudo journalctl -u ollama-manager-daemon -f      # log na żywo
+# octollama-daemon (root, usługa systemowa)
+sudo systemctl status octollama-daemon
+sudo systemctl restart octollama-daemon
+sudo systemctl stop octollama-daemon
+sudo systemctl start octollama-daemon
+sudo journalctl -u octollama-daemon -f      # log na żywo
 
-# ollama-manager-web (usługa usera, bez sudo)
-systemctl --user status ollama-manager-web
-systemctl --user restart ollama-manager-web
-systemctl --user stop ollama-manager-web
-systemctl --user start ollama-manager-web
-journalctl --user -u ollama-manager-web -f       # log na żywo
+# octollama-web (usługa usera, bez sudo)
+systemctl --user status octollama-web
+systemctl --user restart octollama-web
+systemctl --user stop octollama-web
+systemctl --user start octollama-web
+journalctl --user -u octollama-web -f       # log na żywo
 ```
 
 Restart panelu WWW **nie** wpływa na samą usługę Ollama — demon nadal
@@ -203,7 +203,7 @@ kolejne restarty.
 
 ```
 daemon/
-  ollama_manager_daemon.py   Root-owy demon (systemd system unit)
+  octollama_daemon.py   Root-owy demon (systemd system unit)
   systemd/                   Jednostka systemd dla demona
 web/
   app.py                     Trasy / logika widoków (Flask)

@@ -1,0 +1,12 @@
+[Unit]
+Description=OctoLlama - lokalny demon sterujacy usluga Ollama
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/octollama/daemon/.venv/bin/python3 /opt/octollama/daemon/octollama_daemon.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

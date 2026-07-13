@@ -11,7 +11,7 @@ from pathlib import Path
 from werkzeug.security import check_password_hash
 
 CREDENTIALS_PATH = Path(
-    os.environ.get("OLLAMA_MANAGER_CREDENTIALS", Path(__file__).parent / "credentials.json")
+    os.environ.get("OCTOLLAMA_CREDENTIALS", Path(__file__).parent / "credentials.json")
 )
 
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 USTAWIENIA_PATH = Path(
     os.environ.get(
-        "OLLAMA_MANAGER_LITELLM_USTAWIENIA_FILE",
+        "OCTOLLAMA_LITELLM_USTAWIENIA_FILE",
         Path(__file__).parent / "litellm_ustawienia.json",
     )
 )

@@ -70,7 +70,7 @@
   "Pokaż config": "Show config",
   "Rozmiar": "Size",
   "Rozmiar okna kontekstu w tokenach (domyślnie 4096 — za mało do pracy agentowej w Continue/OpenCode).": "Context window size in tokens (default 4096 — too little for agentic work in Continue/OpenCode).",
-  "Skrypt instaluje Ollamę, montuje stan przez NFS z tego hosta i stawia ollama-manager-daemon. Wymaga wcześniej skonfigurowanego eksportu NFS na tym hoście (patrz README.md, \"Wielohostowość\") — to jeszcze nie jest zautomatyzowane z poziomu tego panelu.": "The script installs Ollama, mounts the state directory over NFS from this host, and sets up ollama-manager-daemon. It requires an NFS export already configured on this host (see README.md, \"Multi-host\") — this isn't yet automated from this panel.",
+  "Skrypt instaluje Ollamę, montuje stan przez NFS z tego hosta i stawia octollama-daemon. Wymaga wcześniej skonfigurowanego eksportu NFS na tym hoście (patrz README.md, \"Wielohostowość\") — to jeszcze nie jest zautomatyzowane z poziomu tego panelu.": "The script installs Ollama, mounts the state directory over NFS from this host, and sets up octollama-daemon. It requires an NFS export already configured on this host (see README.md, \"Multi-host\") — this isn't yet automated from this panel.",
   "Slave — zdalne hosty Ollamy": "Slave — remote Ollama hosts",
   "Sprawdź listę i wybór modeli w zakładce": "Check the model list and selection in the",
   "Start": "Start",

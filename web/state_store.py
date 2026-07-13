@@ -1,6 +1,6 @@
 """Odczyt/zapis state.json i odczyt status.json — jedyny kanał komunikacji z demonem.
 
-Ta sama ścieżka co OLLAMA_MANAGER_STATE_DIR w daemon/ollama_manager_daemon.py — na
+Ta sama ścieżka co OCTOLLAMA_STATE_DIR w daemon/octollama_daemon.py — na
 workstation to lokalny katalog, na zdalnych hostach to punkt montowania NFS (patrz
 README.md, sekcja "Wielohostowość").
 """
@@ -9,7 +9,7 @@ import json
 import os
 from pathlib import Path
 
-STATE_DIR = Path(os.environ.get("OLLAMA_MANAGER_STATE_DIR", "/var/lib/ollama-manager/state"))
+STATE_DIR = Path(os.environ.get("OCTOLLAMA_STATE_DIR", "/var/lib/octollama/state"))
 STATE_PATH = STATE_DIR / "state.json"
 STATUS_PATH = STATE_DIR / "status.json"
 
@@ -22,7 +22,7 @@ DOMYSLNY_STAN = {
     },
     # WHY: lista {"nazwa", "ip"} zdalnych hostów (zakładka Slave) - demon na
     # workstation na jej podstawie zarządza /etc/exports.d (patrz daemon
-    # ollama_manager_daemon.py, zastosuj_eksporty_nfs).
+    # octollama_daemon.py, zastosuj_eksporty_nfs).
     "nfs_eksporty": [],
 }
 

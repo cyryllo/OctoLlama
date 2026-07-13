@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Panel WWW ollama-manager — cztery zakładki: Master / Slave / LLM / WebUI.
+"""Panel WWW OctoLlama — cztery zakładki: Master / Slave / LLM / WebUI.
 
 Ten proces NIGDY nie woła systemctl/pkexec dla usługi Ollama bezpośrednio —
 tylko zapisuje docelowy stan do state.json, który stosuje lokalny
-ollama-manager-daemon (patrz README.md, sekcja Architektura). LiteLLM/WebUI
+octollama-daemon (patrz README.md, sekcja Architektura). LiteLLM/WebUI
 (usługi systemd --user, bez roota) i operacje na modelach są sterowane
 bezpośrednio.
 
@@ -112,7 +112,7 @@ def formatuj_czas(iso_tekst):
 app.jinja_env.filters["formatuj_czas"] = formatuj_czas
 
 SECRET_KEY_PATH = Path(
-    os.environ.get("OLLAMA_MANAGER_SECRET_KEY_FILE", Path(__file__).parent / ".secret_key")
+    os.environ.get("OCTOLLAMA_SECRET_KEY_FILE", Path(__file__).parent / ".secret_key")
 )
 if os.environ.get("SECRET_KEY"):
     app.secret_key = os.environ["SECRET_KEY"]
@@ -660,9 +660,9 @@ def modele_pobierz(nazwa):
 
 if __name__ == "__main__":
     # WHY: tylko do lokalnego developmentu - prawdziwe uruchomienie idzie przez
-    # `waitress-serve` (patrz systemd/ollama-manager-web.service), bo wbudowany
+    # `waitress-serve` (patrz systemd/octollama-web.service), bo wbudowany
     # serwer Flask ostrzega o sobie samym "nie używaj tego produkcyjnie", a
     # debug=True na hoście widocznym w całym LAN (decyzja #1) to zdalne
     # wykonanie kodu przez debugger Werkzeuga, nie tylko wygodniejsze tracebacki.
-    debug = os.environ.get("OLLAMA_MANAGER_DEBUG") == "1"
+    debug = os.environ.get("OCTOLLAMA_DEBUG") == "1"
     app.run(host="0.0.0.0", port=5000, debug=debug)

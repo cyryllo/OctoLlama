@@ -14,18 +14,18 @@ from werkzeug.security import generate_password_hash
 
 
 def main():
-    username = input("Nazwa użytkownika: ").strip()
+    username = input("Username: ").strip()
     if not username:
-        print("Nazwa użytkownika nie może być pusta.")
+        print("Username cannot be empty.")
         raise SystemExit(1)
 
-    password = getpass.getpass("Hasło: ")
-    powtorzone = getpass.getpass("Powtórz hasło: ")
+    password = getpass.getpass("Password: ")
+    powtorzone = getpass.getpass("Repeat password: ")
     if not password:
-        print("Hasło nie może być puste.")
+        print("Password cannot be empty.")
         raise SystemExit(1)
     if password != powtorzone:
-        print("Hasła się nie zgadzają.")
+        print("Passwords don't match.")
         raise SystemExit(1)
 
     CREDENTIALS_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -33,7 +33,7 @@ def main():
         json.dumps({"username": username, "password_hash": generate_password_hash(password)}, indent=2)
     )
     CREDENTIALS_PATH.chmod(0o600)
-    print(f"Zapisano poświadczenia do {CREDENTIALS_PATH}")
+    print(f"Credentials saved to {CREDENTIALS_PATH}")
 
 
 if __name__ == "__main__":

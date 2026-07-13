@@ -119,7 +119,7 @@ ustawienia dostrajające to zachowanie:
 **Ważne:** te ustawienia zapisują się od razu, ale **zaczynają obowiązywać
 dopiero po (re)starcie usługi LiteLLM** w tej samej zakładce (przycisk
 Start/Stop wyżej) — dokładnie tak samo, jak zmiana wyboru wystawionych modeli.
-Jeśli w `~/.config/ollama-manager/litellm_config.yaml` masz coś dopisanego
+Jeśli w `~/.config/octollama/litellm_config.yaml` masz coś dopisanego
 ręcznie (np. model innego dostawcy z własnym kluczem API), panel tego nie
 nadpisze — scala swoje wpisy z Twoimi przy każdym starcie usługi.
 
@@ -157,9 +157,9 @@ zakładka Slave → Wake-on-LAN. Jeśli działa, ale się zawiesił — zdalny r
 z tej samej zakładki.
 
 **Zmieniłem ustawienia, ale nic się nie dzieje.**
-Zmiany wykonuje demon (`ollama-manager-daemon`). Jeśli jest zatrzymany,
+Zmiany wykonuje demon (`octollama-daemon`). Jeśli jest zatrzymany,
 polecenia z panelu czekają w `state.json` do jego uruchomienia. Sprawdź:
-`sudo systemctl status ollama-manager-daemon` (na hoście, którego dotyczy zmiana).
+`sudo systemctl status octollama-daemon` (na hoście, którego dotyczy zmiana).
 
 ---
 

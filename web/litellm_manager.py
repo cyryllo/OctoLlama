@@ -27,7 +27,7 @@ import litellm_ustawienia
 from i18n import przetlumacz as _
 
 LITELLM_URL = "http://localhost:4000"
-CONFIG_PATH = Path.home() / ".config" / "ollama-manager" / "litellm_config.yaml"
+CONFIG_PATH = Path.home() / ".config" / "octollama" / "litellm_config.yaml"
 SERVICE_PATH = Path.home() / ".config" / "systemd" / "user" / "litellm.service"
 
 # WHY: marker w model_info (pole na dowolne metadane, LiteLLM go nie rusza)

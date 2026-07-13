@@ -129,7 +129,7 @@ settings to fine-tune this behavior:
 after the LiteLLM service is (re)started** in the same tab (the Start/Stop
 button above) — exactly like changing which models are exposed. If you have
 something added by hand in
-`~/.config/ollama-manager/litellm_config.yaml` (e.g. another provider's
+`~/.config/octollama/litellm_config.yaml` (e.g. another provider's
 model with its own API key), the panel won't overwrite it — it merges its
 own entries with yours every time the service starts.
 
@@ -166,9 +166,9 @@ tab → Wake-on-LAN. If it's running but hung — remote restart from the same
 tab.
 
 **I changed a setting, but nothing happens.**
-Changes are applied by the daemon (`ollama-manager-daemon`). If it's
+Changes are applied by the daemon (`octollama-daemon`). If it's
 stopped, commands from the panel wait in `state.json` until it starts.
-Check: `sudo systemctl status ollama-manager-daemon` (on the host the
+Check: `sudo systemctl status octollama-daemon` (on the host the
 change concerns).
 
 ---
