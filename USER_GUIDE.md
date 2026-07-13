@@ -134,6 +134,20 @@ something added by hand in
 model with its own API key), the panel won't overwrite it — it merges its
 own entries with yours every time the service starts.
 
+#### Model roles for Continue.dev
+
+Different models are good at different jobs — a small model for quick
+autocomplete, a bigger one for chat/agent work with tools. In the same LLM
+tab, each exposed model gets checkboxes for the Continue.dev roles it should
+have: `chat`, `edit`, `apply`, `autocomplete`, `embed`, `rerank`. We suggest
+a default based on the capabilities Ollama reports for that model right next
+to it (e.g. `tools, insert, completion`) — a model with `tools` support
+suggests `edit`/`apply`, one with `insert` suggests `autocomplete`, a
+pure-embedding model suggests `embed` only. Override the checkboxes if you
+disagree. This only changes the generated Continue config below — it
+doesn't touch the running LiteLLM service, so saving it doesn't restart
+anything.
+
 ### WebUI
 Start / stop **Open WebUI** — the browser chat. It's wired to LiteLLM, so it
 sees exactly the models you picked in the LLM tab — from every host at once.

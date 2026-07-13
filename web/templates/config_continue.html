@@ -11,7 +11,7 @@
     </p>
     <p>
       <small>
-        {{ _("Każdy model dostaje domyślnie role: chat, edit, apply. Dostępne są też inne role do ręcznej zmiany w treści poniżej: autocomplete (podpowiedzi w edytorze), embed (modele embeddingowe, np. nomic-embed-text — używane w RAG), rerank (przeszukiwanie/ranking wyników). Model, który nie służy do czatu/edycji kodu, powinien mieć podmienione") }} <code>roles</code> {{ _("na odpowiednią z tej listy.") }}
+        {{ _("Role każdego modelu (chat, edit, apply, autocomplete, embed, rerank) ustawiasz w sekcji „Role modeli w Continue.dev” wyżej na tej zakładce — domyślnie podpowiadane z capability zgłaszanych przez Ollamę, można je tam nadpisać bez ręcznej edycji tego pliku.") }}
       </small>
     </p>
     <textarea readonly rows="{{ (modele|length) * 8 + 6 }}">{{ tresc }}</textarea>

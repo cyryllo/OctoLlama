@@ -160,6 +160,36 @@
   </fieldset>
 
   <fieldset>
+    <legend>{{ _("Role modeli w Continue.dev") }}</legend>
+    <p>
+      <small>{{ _("Do czego ma służyć dany model w Continue — czat, agent z narzędziami, autouzupełnianie w edytorze, embedding do RAG... Domyślny wybór podpowiadamy z capability zgłaszanych przez samą Ollamę (widoczne przy modelu); zapis od razu aktualizuje generowany config Continue, bez restartu LiteLLM.") }}</small>
+    </p>
+    {% if modele_wszystkie %}
+      <form method="post" action="{{ url_for('llm_zapisz_role') }}">
+        {% for model in modele_wszystkie %}
+          <p>
+            <strong>{{ model }}</strong>
+            {% if capabilities.get(model) %}
+              <br><small>{{ _("capabilities (Ollama)") }}: {{ capabilities[model]|join(", ") }}</small>
+            {% endif %}
+            <br>
+            {% for rola in role_lista %}
+              <label title="{{ _(opisy_rol[rola]) }}">
+                <input type="checkbox" name="role__{{ model }}" value="{{ rola }}"
+                       {{ "checked" if rola in role_efektywne.get(model, []) }}>
+                {{ rola }}
+              </label>
+            {% endfor %}
+          </p>
+        {% endfor %}
+        <button type="submit" class="primary">{{ _("Zapisz role") }}</button>
+      </form>
+    {% else %}
+      <p><small>{{ _("Zaznacz i zapisz przynajmniej jeden model wyżej, żeby przypisać mu role.") }}</small></p>
+    {% endif %}
+  </fieldset>
+
+  <fieldset>
     <legend>{{ _("Config dla Continue.dev (VS Code)") }}</legend>
     <p><small>{{ _("Gotowy config.yaml do ręcznego wklejenia w ~/.continue/config.yaml, zbudowany z modeli wystawionych wyżej.") }}</small></p>
     <a href="{{ url_for('llm_config_continue') }}" class="btn primary">{{ _("Pokaż config") }}</a>

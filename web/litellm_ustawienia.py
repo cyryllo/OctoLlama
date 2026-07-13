@@ -28,6 +28,7 @@ DOMYSLNE = {
     "context_window_fallbacks_wlaczone": False,
     "context_window_fallbacks": {},
     "priorytet": {},
+    "role_modele": {},
 }
 
 STRATEGIE_ROUTINGU = (
@@ -36,6 +37,20 @@ STRATEGIE_ROUTINGU = (
     "latency-based-routing",
     "usage-based-routing-v2",
 )
+
+# WHY: role, jakie Continue.dev rozumie w polu `roles` configu modelu - patrz
+# litellm_manager._role_domyslne oraz zbuduj_config_continue. Kolejność tu
+# to kolejność wyświetlania checkboxów w zakładce LLM.
+ROLE_CONTINUE = ("chat", "autocomplete", "edit", "apply", "embed", "rerank")
+
+OPISY_ROL = {
+    "chat": "Rozmowa w czacie Continue.",
+    "autocomplete": "Podpowiedzi inline w edytorze (wymaga wsparcia FIM/insert po stronie modelu).",
+    "edit": "Edycja zaznaczonego fragmentu kodu poleceniem.",
+    "apply": "Nakładanie zaproponowanych przez czat zmian na plik.",
+    "embed": "Model embeddingowy używany w RAG (przeszukiwanie kontekstu) - nie do rozmowy.",
+    "rerank": "Ranking/przeszukiwanie wyników wyszukiwania kontekstu.",
+}
 
 # WHY: teksty źródłowe (polski) do przetłumaczenia przez _() DOPIERO w
 # szablonie/przy renderowaniu (zależnie od sesji usera) - stąd zwykłe stringi

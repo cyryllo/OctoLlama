@@ -203,6 +203,20 @@ own `model_list`/`router_settings`/`litellm_settings` entries into
 manual additions to that file (e.g. another provider's model with its own API
 key, `general_settings`) are preserved across restarts.
 
+### Model roles for Continue.dev (LLM tab)
+
+Each exposed model can be assigned one or more Continue.dev roles: `chat`,
+`edit`, `apply`, `autocomplete`, `embed`, `rerank`. The default selection is
+suggested from the capabilities Ollama itself reports for that model (shown
+next to it) via `/api/tags`: a model with `tools` gets `edit`/`apply`
+(function-calling-based actions), one with `insert` gets `autocomplete`
+(FIM support), and a model that only reports `embedding` gets `embed`
+instead of `chat`. You can override the suggestion per model with the
+checkboxes — the choice is stored in `role_modele` inside
+`web/litellm_ustawienia.json` and only affects the generated Continue
+config (see below), not the running LiteLLM service, so saving it doesn't
+trigger a restart.
+
 ## Repo layout
 
 ```

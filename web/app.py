@@ -399,7 +399,7 @@ def llm_widok():
 
     siatka = []
     for h in hosty:
-        modele_hosta = sorted({model for nazwa, model, _ in wykryte if nazwa == h["nazwa"]})
+        modele_hosta = sorted({model for nazwa, model, _adres, _cap in wykryte if nazwa == h["nazwa"]})
         siatka.append(
             {
                 "nazwa": h["nazwa"],
@@ -424,6 +424,16 @@ def llm_widok():
     modele_wszystkie = litellm.modele_wystawione(hosty)
     ustawienia = litellm_ustawienia.wczytaj_ustawienia()
 
+    # WHY: role per model (chat/edit/apply/autocomplete/embed/rerank) do configu
+    # Continue - capabilities z Ollamy dają sensowną wartość domyślną (patrz
+    # litellm.role_dla_modelu), user może ją nadpisać checkboxami w tej zakładce.
+    capabilities = litellm.modele_capabilities(hosty)
+    role_modele = ustawienia.get("role_modele", {})
+    role_efektywne = {
+        model: litellm.role_dla_modelu(model, capabilities.get(model, ()), role_modele)
+        for model in modele_wszystkie
+    }
+
     return render_template(
         "llm.html",
         litellm=litellm_stan,
@@ -433,6 +443,10 @@ def llm_widok():
         opisy_strategii=litellm_ustawienia.OPISY_STRATEGII,
         zbalansowane=zbalansowane,
         modele_wszystkie=modele_wszystkie,
+        capabilities=capabilities,
+        role_lista=litellm_ustawienia.ROLE_CONTINUE,
+        opisy_rol=litellm_ustawienia.OPISY_ROL,
+        role_efektywne=role_efektywne,
     )
 
 
@@ -474,6 +488,30 @@ def llm_zapisz_modele():
             litellm.uruchom()
         except RuntimeError as e:
             flash(str(e))
+    return redirect(url_for("llm_widok"))
+
+
+@app.route("/llm/zapisz_role", methods=["POST"])
+@login_required
+def llm_zapisz_role():
+    # WHY: role (chat/edit/apply/autocomplete/embed/rerank) trafiają TYLKO do
+    # generowanego configu Continue (zbuduj_config_continue) - w przeciwieństwie
+    # do wyboru modeli/routingu wyżej, nie ma tu czego restartować w LiteLLM.
+    hosty = hosts_store.wczytaj_hosty()
+    modele_wszystkie = litellm.modele_wystawione(hosty)
+    ustawienia = litellm_ustawienia.wczytaj_ustawienia()
+    role_modele = dict(ustawienia.get("role_modele", {}))
+    for model in modele_wszystkie:
+        role = request.form.getlist(f"role__{model}")
+        # WHY: pusty wybór traktujemy jako "wróć do domyślnych z capabilities",
+        # nie jako model bez żadnej roli - roles: [] w configu Continue byłoby
+        # bezużyteczne (model i tak by nigdzie się nie pojawił).
+        if role:
+            role_modele[model] = role
+        else:
+            role_modele.pop(model, None)
+    litellm_ustawienia.zapisz_ustawienia({**ustawienia, "role_modele": role_modele})
+    flash(_("Zapisano role modeli dla configu Continue."))
     return redirect(url_for("llm_widok"))
 
 
@@ -575,8 +613,11 @@ def llm_config_continue():
     # WHY: appka celowo NIGDY nie zapisuje ~/.continue/config.yaml sama - ten
     # plik należy do użytkownika i może mieć inne wpisy; automatyczny zapis
     # mógłby je nadpisać (ten sam wybór co w Ollama Managerze, DialogConfigContinue).
-    modele = litellm.modele_wystawione(hosts_store.wczytaj_hosty())
-    tresc = litellm.zbuduj_config_continue(modele)
+    hosty = hosts_store.wczytaj_hosty()
+    modele = litellm.modele_wystawione(hosty)
+    capabilities = litellm.modele_capabilities(hosty)
+    role_modele = litellm_ustawienia.wczytaj_ustawienia().get("role_modele", {})
+    tresc = litellm.zbuduj_config_continue(modele, capabilities, role_modele)
     return render_template("config_continue.html", tresc=tresc, modele=modele)
 
 

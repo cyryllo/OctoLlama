@@ -123,6 +123,20 @@ Jeśli w `~/.config/octollama/litellm_config.yaml` masz coś dopisanego
 ręcznie (np. model innego dostawcy z własnym kluczem API), panel tego nie
 nadpisze — scala swoje wpisy z Twoimi przy każdym starcie usługi.
 
+#### Role modeli w Continue.dev
+
+Różne modele nadają się do różnych zadań — mały model do szybkiego
+autouzupełniania, większy do czatu/pracy agenta z narzędziami. W tej samej
+zakładce LLM każdy wystawiony model dostaje checkboxy z rolami Continue.dev,
+jakie ma pełnić: `chat`, `edit`, `apply`, `autocomplete`, `embed`, `rerank`.
+Domyślny wybór podpowiadamy na podstawie capability, które Ollama zgłasza dla
+danego modelu tuż obok niego (np. `tools, insert, completion`) — model ze
+wsparciem `tools` podpowiada `edit`/`apply`, model z `insert` podpowiada
+`autocomplete`, czysto embeddingowy model podpowiada tylko `embed`. Jeśli się
+nie zgadzasz, po prostu odznacz/zaznacz checkboxy. To zmienia tylko generowany
+config Continue niżej — nie dotyka działającej usługi LiteLLM, więc zapis nie
+wywołuje restartu.
+
 ### WebUI
 Start / stop **Open WebUI** — czatu w przeglądarce. Jest podpięty pod LiteLLM,
 więc widzi dokładnie te modele, które wybrałeś w zakładce LLM — ze wszystkich

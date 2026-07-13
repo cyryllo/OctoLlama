@@ -129,28 +129,42 @@ def autostart_wlaczony():
 def wykryj_wszystkie_modele(hosty):
     # WHY: publiczne, BEZ filtrowania wyboru LLM - do budowy siatki checkboxów
     # w zakładce "LLM" (trzeba pokazać wszystko, co jest do wyboru, nie tylko
-    # to, co już włączone).
+    # to, co już włączone). Capabilities (np. "tools", "insert", "embedding")
+    # to info wprost z /api/tags Ollamy - używane do podpowiedzi ról Continue,
+    # patrz _role_domyslne.
     wpisy = []
     for h in hosty:
         adres = h["adres"].rstrip("/")
         try:
             r = requests.get(f"{adres}/api/tags", timeout=3)
             r.raise_for_status()
-            modele = [m["name"] for m in r.json().get("models", [])]
+            modele = r.json().get("models", [])
         except requests.RequestException:
             continue  # WHY: host akurat nieosiągalny - pomijamy, nie wywalamy całości
-        for model in modele:
-            wpisy.append((h["nazwa"], model, adres))
+        for m in modele:
+            wpisy.append((h["nazwa"], m["name"], adres, tuple(m.get("capabilities", []))))
     return wpisy
 
 
 def _wykryj_modele_wlaczone(hosty):
     wlaczone = {h["nazwa"]: set(h.get("modele_llm", [])) for h in hosty}
     return [
-        (nazwa, model, adres)
-        for nazwa, model, adres in wykryj_wszystkie_modele(hosty)
+        (nazwa, model, adres, capabilities)
+        for nazwa, model, adres, capabilities in wykryj_wszystkie_modele(hosty)
         if model in wlaczone.get(nazwa, set())
     ]
+
+
+def modele_capabilities(hosty):
+    # WHY: do UI zakładki "LLM" (badge przy modelu) i do domyślnych ról w
+    # configu Continue (_role_domyslne) - suma capability zgłaszanych przez
+    # WSZYSTKIE hosty, na których dany model jest włączony (w praktyce to
+    # ten sam model, więc te same capability, ale unia jest bezpieczna,
+    # gdyby akurat dwie instancje Ollamy miały różne wersje).
+    wynik = {}
+    for _nazwa, model, _adres, capabilities in _wykryj_modele_wlaczone(hosty):
+        wynik.setdefault(model, set()).update(capabilities)
+    return {model: sorted(caps) for model, caps in wynik.items()}
 
 
 def _yaml_str(tekst):
@@ -163,7 +177,7 @@ def modele_zbalansowane(hosty):
     # checkboxów, zanim jeszcze zapisze/wystartuje LiteLLM.
     wpisy = _wykryj_modele_wlaczone(hosty)
     hosty_per_model = {}
-    for nazwa_hosta, model, _adres in wpisy:
+    for nazwa_hosta, model, _adres, _capabilities in wpisy:
         hosty_per_model.setdefault(model, set()).add(nazwa_hosta)
     return {model: sorted(h) for model, h in hosty_per_model.items() if len(h) > 1}
 
@@ -187,7 +201,7 @@ def _wczytaj_istniejacy_config():
 def _zbuduj_model_list(hosty, ustawienia):
     priorytet = ustawienia.get("priorytet", {})
     lista = []
-    for nazwa_hosta, model, adres in _wykryj_modele_wlaczone(hosty):
+    for nazwa_hosta, model, adres, _capabilities in _wykryj_modele_wlaczone(hosty):
         litellm_params = {"model": f"ollama_chat/{model}", "api_base": adres}
         # WHY: order dopisujemy TYLKO gdy user jawnie ustawił priorytet dla
         # TEGO hosta w TYM modelu - inaczej zostaje czysty load balancing
@@ -287,16 +301,43 @@ def modele_wystawione(hosty):
     # /v1/models - te same włączone modele co w _zbuduj_config, nie wszystko,
     # co jest zainstalowane. Model może wystąpić na kilku hostach naraz
     # (LiteLLM sam routuje) - Continue widzi tylko nazwę, więc dedupe.
-    return sorted({model for _nazwa, model, _adres in _wykryj_modele_wlaczone(hosty)})
+    return sorted({model for _nazwa, model, _adres, _capabilities in _wykryj_modele_wlaczone(hosty)})
 
 
-def zbuduj_config_continue(modele):
+# WHY: mapowanie capability zgłaszanych przez Ollamę (/api/tags) na sensowną
+# domyślną rolę Continue - "tools" (function-calling) daje edit/apply, "insert"
+# (FIM) daje autocomplete, model czysto embeddingowy (bez "completion") dostaje
+# TYLKO "embed" zamiast "chat", żeby nie wylądował w selektorze czatu.
+def _role_domyslne(capabilities):
+    capabilities = set(capabilities)
+    if "embedding" in capabilities and "completion" not in capabilities:
+        return ["embed"]
+    role = ["chat"]
+    if "insert" in capabilities:
+        role.append("autocomplete")
+    if "tools" in capabilities:
+        role += ["edit", "apply"]
+    return role
+
+
+def role_dla_modelu(model, capabilities, role_modele):
+    # WHY: user mógł ręcznie nadpisać role per model w zakładce LLM
+    # (litellm_ustawienia.json, klucz role_modele) - to ma pierwszeństwo
+    # przed podpowiedzią z capabilities Ollamy.
+    if model in role_modele:
+        return role_modele[model]
+    return _role_domyslne(capabilities)
+
+
+def zbuduj_config_continue(modele, capabilities=None, role_modele=None):
     # WHY: ŻADNYCH kotwic YAML (&anchor / <<: *anchor), każdy model rozpisany
     # osobno - Continue parsuje YAML 1.2, gdzie merge keys bez jawnego
     # nagłówka "%YAML 1.1" po cichu się nie stosują i model znika z selektora
     # klienta (potwierdzone w Ollama Managerze na testach BC-250 + Continue).
     if not modele:
         return "models: []\n"
+    capabilities = capabilities or {}
+    role_modele = role_modele or {}
     linie = ["name: Local LiteLLM", "version: 1.0.0", "schema: v1", "", "models:"]
     for model in modele:
         linie.append(f"  - name: {_yaml_str(model)}")
@@ -305,9 +346,8 @@ def zbuduj_config_continue(modele):
         linie.append(f"    apiBase: {LITELLM_URL}/v1")
         linie.append("    apiKey: sk-anything")
         linie.append("    roles:")
-        linie.append("      - chat")
-        linie.append("      - edit")
-        linie.append("      - apply")
+        for rola in role_dla_modelu(model, capabilities.get(model, ()), role_modele):
+            linie.append(f"      - {rola}")
     return "\n".join(linie) + "\n"
 
 

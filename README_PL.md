@@ -199,6 +199,19 @@ zamiast nadpisywać cały plik, więc ręczne dopiski do tego pliku (np. model
 innego providera z własnym kluczem API, `general_settings`) przetrwają
 kolejne restarty.
 
+### Role modeli w Continue.dev (zakładka LLM)
+
+Każdemu wystawionemu modelowi można przypisać jedną lub więcej ról Continue.dev:
+`chat`, `edit`, `apply`, `autocomplete`, `embed`, `rerank`. Domyślny wybór jest
+podpowiadany na podstawie capability, które sama Ollama zgłasza dla danego
+modelu (widoczne przy nim) przez `/api/tags`: model z `tools` dostaje
+`edit`/`apply` (akcje oparte o function-calling), model z `insert` dostaje
+`autocomplete` (wsparcie FIM), a model zgłaszający tylko `embedding` dostaje
+`embed` zamiast `chat`. Podpowiedź można nadpisać checkboxami per model — wybór
+trafia do klucza `role_modele` w `web/litellm_ustawienia.json` i wpływa
+wyłącznie na generowany config Continue (patrz niżej), nie na działającą
+usługę LiteLLM, więc zapis nie wywołuje restartu.
+
 ## Struktura repo
 
 ```
