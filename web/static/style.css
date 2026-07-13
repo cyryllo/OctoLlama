@@ -306,6 +306,42 @@ code {
   margin-top: 2.5rem;
 }
 
+.rola-wiersz {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rola-wiersz:last-of-type { border-bottom: none; }
+
+.rola-model small { margin: 0; }
+
+.rola-checkboxy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  flex-shrink: 0;
+}
+
+.rola-checkboxy label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.rola-checkboxy input[type=checkbox] {
+  margin: 0;
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
 @media (max-width: 40rem) {
   .container { padding: 1rem 0.85rem 3rem; }
   nav.zakladki a { padding: 0.5rem 0.7rem; font-size: 0.92rem; }

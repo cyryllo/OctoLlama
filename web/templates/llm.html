@@ -167,20 +167,23 @@
     {% if modele_wszystkie %}
       <form method="post" action="{{ url_for('llm_zapisz_role') }}">
         {% for model in modele_wszystkie %}
-          <p>
-            <strong>{{ model }}</strong>
-            {% if capabilities.get(model) %}
-              <br><small>{{ _("capabilities (Ollama)") }}: {{ capabilities[model]|join(", ") }}</small>
-            {% endif %}
-            <br>
-            {% for rola in role_lista %}
-              <label title="{{ _(opisy_rol[rola]) }}">
-                <input type="checkbox" name="role__{{ model }}" value="{{ rola }}"
-                       {{ "checked" if rola in role_efektywne.get(model, []) }}>
-                {{ rola }}
-              </label>
-            {% endfor %}
-          </p>
+          <div class="rola-wiersz">
+            <div class="rola-model">
+              <strong>{{ model }}</strong>
+              {% if capabilities.get(model) %}
+                <br><small>{{ _("capabilities (Ollama)") }}: {{ capabilities[model]|join(", ") }}</small>
+              {% endif %}
+            </div>
+            <div class="rola-checkboxy">
+              {% for rola in role_lista %}
+                <label title="{{ _(opisy_rol[rola]) }}">
+                  <input type="checkbox" name="role__{{ model }}" value="{{ rola }}"
+                         {{ "checked" if rola in role_efektywne.get(model, []) }}>
+                  {{ rola }}
+                </label>
+              {% endfor %}
+            </div>
+          </div>
         {% endfor %}
         <button type="submit" class="primary">{{ _("Zapisz role") }}</button>
       </form>
