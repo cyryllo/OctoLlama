@@ -433,11 +433,6 @@ def llm_widok():
         model: litellm.role_dla_modelu(model, capabilities.get(model, ()), role_modele)
         for model in modele_wszystkie
     }
-    # WHY: podpowiedź fallbacku dla modeli bez wsparcia narzędzi (patrz WHY w
-    # litellm.fallback_bez_tools) - żeby "does not support tools" w Continue
-    # (np. tryb Agent) miało od razu gotowe, sensowne obejście do zaznaczenia.
-    fallback_sugerowany = litellm.fallback_bez_tools(modele_wszystkie, capabilities)
-
     return render_template(
         "llm.html",
         litellm=litellm_stan,
@@ -448,10 +443,10 @@ def llm_widok():
         zbalansowane=zbalansowane,
         modele_wszystkie=modele_wszystkie,
         capabilities=capabilities,
-        fallback_sugerowany=fallback_sugerowany,
         role_lista=litellm_ustawienia.ROLE_CONTINUE,
         opisy_rol=litellm_ustawienia.OPISY_ROL,
         role_efektywne=role_efektywne,
+        role_wymaga_tools=litellm_ustawienia.ROLE_WYMAGA_TOOLS,
     )
 
 
@@ -504,10 +499,18 @@ def llm_zapisz_role():
     # do wyboru modeli/routingu wyżej, nie ma tu czego restartować w LiteLLM.
     hosty = hosts_store.wczytaj_hosty()
     modele_wszystkie = litellm.modele_wystawione(hosty)
+    capabilities = litellm.modele_capabilities(hosty)
     ustawienia = litellm_ustawienia.wczytaj_ustawienia()
     role_modele = dict(ustawienia.get("role_modele", {}))
     for model in modele_wszystkie:
-        role = request.form.getlist(f"role__{model}")
+        caps = set(capabilities.get(model, ()))
+        # WHY: odrzucamy role wymagające tools nawet jeśli ktoś obszedł
+        # disabled checkbox w UI (np. ręcznym POST-em) - model bez tego
+        # capability i tak dostanie "does not support tools" od Ollamy.
+        role = [
+            r for r in request.form.getlist(f"role__{model}")
+            if r not in litellm_ustawienia.ROLE_WYMAGA_TOOLS or "tools" in caps
+        ]
         # WHY: pusty wybór traktujemy jako "wróć do domyślnych z capabilities",
         # nie jako model bez żadnej roli - roles: [] w configu Continue byłoby
         # bezużyteczne (model i tak by nigdzie się nie pojawił).

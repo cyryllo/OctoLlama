@@ -170,6 +170,8 @@
   "capabilities (Ollama)": "capabilities (Ollama)",
   "Zapisz role": "Save roles",
   "Zaznacz i zapisz przynajmniej jeden model wyżej, żeby przypisać mu role.": "Select and save at least one model above to assign it roles.",
+  "Wymaga wsparcia narzędzi (tools), którego ten model nie zgłasza.": "Requires tool support, which this model doesn't report.",
+  "Ten model nie zgłasza wsparcia narzędzi (tools) — role edit/apply są dla niego niedostępne (Continue i tak dostałby błąd „does not support tools”).": "This model doesn't report tool support — the edit/apply roles are unavailable for it (Continue would just get a “does not support tools” error anyway).",
   "Rozmowa w czacie Continue.": "Conversation in the Continue chat.",
   "Podpowiedzi inline w edytorze (wymaga wsparcia FIM/insert po stronie modelu).": "Inline suggestions in the editor (requires FIM/insert support from the model).",
   "Edycja zaznaczonego fragmentu kodu poleceniem.": "Editing a selected code snippet via a command.",
@@ -177,6 +179,5 @@
   "Model embeddingowy używany w RAG (przeszukiwanie kontekstu) - nie do rozmowy.": "An embedding model used in RAG (context retrieval) - not for conversation.",
   "Ranking/przeszukiwanie wyników wyszukiwania kontekstu.": "Ranking/searching context retrieval results.",
   "Zapisano role modeli dla configu Continue.": "Model roles saved for the Continue config.",
-  "Role każdego modelu (chat, edit, apply, autocomplete, embed, rerank) ustawiasz w sekcji „Role modeli w Continue.dev” wyżej na tej zakładce — domyślnie podpowiadane z capability zgłaszanych przez Ollamę, można je tam nadpisać bez ręcznej edycji tego pliku.": "Each model's roles (chat, edit, apply, autocomplete, embed, rerank) are set in the “Model roles in Continue.dev” section above on this tab — suggested by default from the capabilities Ollama reports, and can be overridden there without hand-editing this file.",
-  "Podpowiedź: ten model nie zgłasza wsparcia narzędzi (tools) — ten fallback pomoże np. w trybie Agent w Continue, które wysyła zapytania z narzędziami niezależnie od przypisanej roli.": "Hint: this model doesn't report tool support — this fallback helps e.g. with Continue's Agent mode, which sends tool-calling requests regardless of the assigned role."
+  "Role każdego modelu (chat, edit, apply, autocomplete, embed, rerank) ustawiasz w sekcji „Role modeli w Continue.dev” wyżej na tej zakładce — domyślnie podpowiadane z capability zgłaszanych przez Ollamę, można je tam nadpisać bez ręcznej edycji tego pliku.": "Each model's roles (chat, edit, apply, autocomplete, embed, rerank) are set in the “Model roles in Continue.dev” section above on this tab — suggested by default from the capabilities Ollama reports, and can be overridden there without hand-editing this file."
 }

@@ -43,6 +43,13 @@ STRATEGIE_ROUTINGU = (
 # to kolejność wyświetlania checkboxów w zakładce LLM.
 ROLE_CONTINUE = ("chat", "autocomplete", "edit", "apply", "embed", "rerank")
 
+# WHY: role oparte o function-calling - model bez "tools" w capabilities
+# (patrz litellm_manager.role_dla_modelu) dostaje w Continue twarde
+# "does not support tools" za każdym razem, gdy się je wywoła, więc w ogóle
+# nie pozwalamy ich zaznaczyć dla takiego modelu (checkbox disabled w UI +
+# odfiltrowane po stronie serwera, patrz app.llm_zapisz_role).
+ROLE_WYMAGA_TOOLS = frozenset({"edit", "apply"})
+
 OPISY_ROL = {
     "chat": "Rozmowa w czacie Continue.",
     "autocomplete": "Podpowiedzi inline w edytorze (wymaga wsparcia FIM/insert po stronie modelu).",

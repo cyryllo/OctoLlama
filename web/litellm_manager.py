@@ -304,23 +304,6 @@ def modele_wystawione(hosty):
     return sorted({model for _nazwa, model, _adres, _capabilities in _wykryj_modele_wlaczone(hosty)})
 
 
-def fallback_bez_tools(modele, capabilities):
-    # WHY: model bez "tools" w capabilities (np. gemma3) dostaje w Continue
-    # odrzucenie "does not support tools" za każdym razem, gdy klient wyśle
-    # zapytanie z narzędziami (np. tryb Agent) - podpowiadamy więc jako
-    # domyślny fallback pierwszy inny wystawiony model, który tools wspiera,
-    # żeby LiteLLM mógł się na niego automatycznie przełączyć przy takim
-    # błędzie (zwykły fallback z router_settings, nie context_window).
-    z_tools = [m for m in modele if "tools" in capabilities.get(m, ())]
-    sugestie = {}
-    for model in modele:
-        if "tools" not in capabilities.get(model, ()):
-            kandydat = next((m for m in z_tools if m != model), None)
-            if kandydat:
-                sugestie[model] = kandydat
-    return sugestie
-
-
 # WHY: mapowanie capability zgłaszanych przez Ollamę (/api/tags) na sensowną
 # domyślną rolę Continue - "tools" (function-calling) daje edit/apply, "insert"
 # (FIM) daje autocomplete, model czysto embeddingowy (bez "completion") dostaje
@@ -341,9 +324,13 @@ def role_dla_modelu(model, capabilities, role_modele):
     # WHY: user mógł ręcznie nadpisać role per model w zakładce LLM
     # (litellm_ustawienia.json, klucz role_modele) - to ma pierwszeństwo
     # przed podpowiedzią z capabilities Ollamy.
-    if model in role_modele:
-        return role_modele[model]
-    return _role_domyslne(capabilities)
+    role = role_modele[model] if model in role_modele else _role_domyslne(capabilities)
+    # WHY: obrona w głębi - nawet jeśli role_modele ma zapisaną rolę wymagającą
+    # tools (np. zapisaną zanim model stracił to capability, albo z ominięcia
+    # disabled checkboxa w UI), model bez "tools" nigdy nie dostaje edit/apply,
+    # bo Continue i tak dostanie od Ollamy "does not support tools".
+    caps = set(capabilities)
+    return [r for r in role if r not in litellm_ustawienia.ROLE_WYMAGA_TOOLS or "tools" in caps]
 
 
 def zbuduj_config_continue(modele, capabilities=None, role_modele=None):
