@@ -306,19 +306,21 @@ code {
   margin-top: 2.5rem;
 }
 
-.rola-wiersz {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.3rem 1.5rem;
+.rola-blok {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
 }
 
-.rola-wiersz:last-of-type { border-bottom: none; }
+.rola-blok:last-of-type { border-bottom: none; }
 
-.rola-model small { margin: 0; }
+.rola-blok small { margin: 0.2rem 0 0; }
+
+.rola-wiersz {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
 
 .rola-checkboxy {
   display: flex;
@@ -349,4 +351,5 @@ code {
   th, td { padding: 0.45rem 0.5rem; }
   header.top h1 { font-size: 2.4rem; }
   .logo-icon { height: 3rem; }
+  .rola-wiersz { flex-wrap: wrap; }
 }

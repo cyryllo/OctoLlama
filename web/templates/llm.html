@@ -121,14 +121,18 @@
         <p><strong>{{ _("Fallbacki (model zapasowy)") }}</strong></p>
         <p><small>{{ _("Gdy zapytanie do danego modelu się nie powiedzie, LiteLLM spróbuje wskazanego tu modelu zapasowego.") }}</small></p>
         {% for model in modele_wszystkie %}
+          {% set efektywny_fallback = ustawienia.fallbacks.get(model, fallback_sugerowany.get(model, "")) %}
           <p>
             {{ model }} →
             <select name="fallback__{{ model }}">
               <option value="">{{ _("(brak)") }}</option>
               {% for inny in modele_wszystkie if inny != model %}
-                <option value="{{ inny }}" {{ "selected" if ustawienia.fallbacks.get(model) == inny }}>{{ inny }}</option>
+                <option value="{{ inny }}" {{ "selected" if efektywny_fallback == inny }}>{{ inny }}</option>
               {% endfor %}
             </select>
+            {% if model not in ustawienia.fallbacks and fallback_sugerowany.get(model) %}
+              <small>{{ _("Podpowiedź: ten model nie zgłasza wsparcia narzędzi (tools) — ten fallback pomoże np. w trybie Agent w Continue, które wysyła zapytania z narzędziami niezależnie od przypisanej roli.") }}</small>
+            {% endif %}
           </p>
         {% endfor %}
 
@@ -167,22 +171,22 @@
     {% if modele_wszystkie %}
       <form method="post" action="{{ url_for('llm_zapisz_role') }}">
         {% for model in modele_wszystkie %}
-          <div class="rola-wiersz">
-            <div class="rola-model">
+          <div class="rola-blok">
+            <div class="rola-wiersz">
               <strong>{{ model }}</strong>
-              {% if capabilities.get(model) %}
-                <br><small>{{ _("capabilities (Ollama)") }}: {{ capabilities[model]|join(", ") }}</small>
-              {% endif %}
+              <div class="rola-checkboxy">
+                {% for rola in role_lista %}
+                  <label title="{{ _(opisy_rol[rola]) }}">
+                    <input type="checkbox" name="role__{{ model }}" value="{{ rola }}"
+                           {{ "checked" if rola in role_efektywne.get(model, []) }}>
+                    {{ rola }}
+                  </label>
+                {% endfor %}
+              </div>
             </div>
-            <div class="rola-checkboxy">
-              {% for rola in role_lista %}
-                <label title="{{ _(opisy_rol[rola]) }}">
-                  <input type="checkbox" name="role__{{ model }}" value="{{ rola }}"
-                         {{ "checked" if rola in role_efektywne.get(model, []) }}>
-                  {{ rola }}
-                </label>
-              {% endfor %}
-            </div>
+            {% if capabilities.get(model) %}
+              <small>{{ _("capabilities (Ollama)") }}: {{ capabilities[model]|join(", ") }}</small>
+            {% endif %}
           </div>
         {% endfor %}
         <button type="submit" class="primary">{{ _("Zapisz role") }}</button>

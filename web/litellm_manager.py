@@ -304,6 +304,23 @@ def modele_wystawione(hosty):
     return sorted({model for _nazwa, model, _adres, _capabilities in _wykryj_modele_wlaczone(hosty)})
 
 
+def fallback_bez_tools(modele, capabilities):
+    # WHY: model bez "tools" w capabilities (np. gemma3) dostaje w Continue
+    # odrzucenie "does not support tools" za każdym razem, gdy klient wyśle
+    # zapytanie z narzędziami (np. tryb Agent) - podpowiadamy więc jako
+    # domyślny fallback pierwszy inny wystawiony model, który tools wspiera,
+    # żeby LiteLLM mógł się na niego automatycznie przełączyć przy takim
+    # błędzie (zwykły fallback z router_settings, nie context_window).
+    z_tools = [m for m in modele if "tools" in capabilities.get(m, ())]
+    sugestie = {}
+    for model in modele:
+        if "tools" not in capabilities.get(model, ()):
+            kandydat = next((m for m in z_tools if m != model), None)
+            if kandydat:
+                sugestie[model] = kandydat
+    return sugestie
+
+
 # WHY: mapowanie capability zgłaszanych przez Ollamę (/api/tags) na sensowną
 # domyślną rolę Continue - "tools" (function-calling) daje edit/apply, "insert"
 # (FIM) daje autocomplete, model czysto embeddingowy (bez "completion") dostaje

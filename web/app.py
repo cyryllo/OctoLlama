@@ -433,6 +433,10 @@ def llm_widok():
         model: litellm.role_dla_modelu(model, capabilities.get(model, ()), role_modele)
         for model in modele_wszystkie
     }
+    # WHY: podpowiedź fallbacku dla modeli bez wsparcia narzędzi (patrz WHY w
+    # litellm.fallback_bez_tools) - żeby "does not support tools" w Continue
+    # (np. tryb Agent) miało od razu gotowe, sensowne obejście do zaznaczenia.
+    fallback_sugerowany = litellm.fallback_bez_tools(modele_wszystkie, capabilities)
 
     return render_template(
         "llm.html",
@@ -444,6 +448,7 @@ def llm_widok():
         zbalansowane=zbalansowane,
         modele_wszystkie=modele_wszystkie,
         capabilities=capabilities,
+        fallback_sugerowany=fallback_sugerowany,
         role_lista=litellm_ustawienia.ROLE_CONTINUE,
         opisy_rol=litellm_ustawienia.OPISY_ROL,
         role_efektywne=role_efektywne,
