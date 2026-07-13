@@ -433,6 +433,14 @@ def llm_widok():
         model: litellm.role_dla_modelu(model, capabilities.get(model, ()), role_modele)
         for model in modele_wszystkie
     }
+    # WHY: nie pokazujemy w ogóle checkboxa roli, na którą capability modelu
+    # nie pozwala (patrz litellm.rola_dostepna) - zamiast disabled checkboxa
+    # z tłumaczeniem dlaczego, po prostu go tam nie ma.
+    role_dostepne = {
+        model: [r for r in litellm_ustawienia.ROLE_CONTINUE if litellm.rola_dostepna(r, capabilities.get(model, ()))]
+        for model in modele_wszystkie
+    }
+
     return render_template(
         "llm.html",
         litellm=litellm_stan,
@@ -443,10 +451,9 @@ def llm_widok():
         zbalansowane=zbalansowane,
         modele_wszystkie=modele_wszystkie,
         capabilities=capabilities,
-        role_lista=litellm_ustawienia.ROLE_CONTINUE,
         opisy_rol=litellm_ustawienia.OPISY_ROL,
         role_efektywne=role_efektywne,
-        role_wymaga_tools=litellm_ustawienia.ROLE_WYMAGA_TOOLS,
+        role_dostepne=role_dostepne,
     )
 
 
@@ -503,14 +510,11 @@ def llm_zapisz_role():
     ustawienia = litellm_ustawienia.wczytaj_ustawienia()
     role_modele = dict(ustawienia.get("role_modele", {}))
     for model in modele_wszystkie:
-        caps = set(capabilities.get(model, ()))
-        # WHY: odrzucamy role wymagające tools nawet jeśli ktoś obszedł
-        # disabled checkbox w UI (np. ręcznym POST-em) - model bez tego
-        # capability i tak dostanie "does not support tools" od Ollamy.
-        role = [
-            r for r in request.form.getlist(f"role__{model}")
-            if r not in litellm_ustawienia.ROLE_WYMAGA_TOOLS or "tools" in caps
-        ]
+        caps = capabilities.get(model, ())
+        # WHY: odrzucamy role, na które capability modelu nie pozwala, nawet
+        # jeśli ktoś wysłał je ręcznym POST-em mimo że w UI checkbox w ogóle
+        # nie istnieje - model bez danego capability i tak dostałby błąd od Ollamy.
+        role = [r for r in request.form.getlist(f"role__{model}") if litellm.rola_dostepna(r, caps)]
         # WHY: pusty wybór traktujemy jako "wróć do domyślnych z capabilities",
         # nie jako model bez żadnej roli - roles: [] w configu Continue byłoby
         # bezużyteczne (model i tak by nigdzie się nie pojawił).

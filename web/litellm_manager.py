@@ -320,17 +320,27 @@ def _role_domyslne(capabilities):
     return role
 
 
+def rola_dostepna(rola, capabilities):
+    # WHY: brak listy capabilities w ogóle (stara Ollama, która ich nie
+    # zgłasza) nie ma nas blokować na ślepo - ograniczamy wybór TYLKO gdy
+    # faktycznie wiemy, czego model nie potrafi (patrz ROLA_WYMAGANA_CAPABILITY).
+    capabilities = set(capabilities)
+    if not capabilities:
+        return True
+    wymagana = litellm_ustawienia.ROLA_WYMAGANA_CAPABILITY.get(rola)
+    return wymagana is None or wymagana in capabilities
+
+
 def role_dla_modelu(model, capabilities, role_modele):
     # WHY: user mógł ręcznie nadpisać role per model w zakładce LLM
     # (litellm_ustawienia.json, klucz role_modele) - to ma pierwszeństwo
     # przed podpowiedzią z capabilities Ollamy.
     role = role_modele[model] if model in role_modele else _role_domyslne(capabilities)
-    # WHY: obrona w głębi - nawet jeśli role_modele ma zapisaną rolę wymagającą
-    # tools (np. zapisaną zanim model stracił to capability, albo z ominięcia
-    # disabled checkboxa w UI), model bez "tools" nigdy nie dostaje edit/apply,
-    # bo Continue i tak dostanie od Ollamy "does not support tools".
-    caps = set(capabilities)
-    return [r for r in role if r not in litellm_ustawienia.ROLE_WYMAGA_TOOLS or "tools" in caps]
+    # WHY: obrona w głębi - nawet jeśli role_modele ma zapisaną rolę, na którą
+    # capability już nie pozwala (np. zapisaną zanim model je stracił, albo z
+    # ominięcia niewidocznego w UI checkboxa), taka rola i tak zniknie stąd,
+    # zanim trafi do configu Continue.
+    return [r for r in role if rola_dostepna(r, capabilities)]
 
 
 def zbuduj_config_continue(modele, capabilities=None, role_modele=None):
