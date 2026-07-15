@@ -7,32 +7,39 @@
   <h2>{{ _("Ollama") }} — {{ host.nazwa }}</h2>
   <p><small>{{ host.adres }}</small></p>
 
-  <p>
-    {{ _("Usługa") }}: <strong>{{ _("działa") if ollama.service_running else _("zatrzymana") }}</strong> —
-    {{ _("autostart") }}: <strong>{{ _("włączony") if ollama.service_enabled else _("wyłączony") }}</strong>
-    — <a href="{{ url_for('modele_widok', nazwa=host.nazwa) }}">{{ _("zarządzaj modelami →") }}</a>
-  </p>
-
   <fieldset>
     <legend>{{ _("Usługa") }}</legend>
-    {% if status and not status.ollama.zainstalowana %}
-      <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
-        <input type="hidden" name="akcja" value="zainstaluj_ollama">
-        <button type="submit" class="primary">{{ _("Zainstaluj Ollamę") }}</button>
-      </form>
-    {% endif %}
-    <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
-      <input type="hidden" name="akcja" value="start">
-      <button type="submit" class="primary" {{ "disabled" if ollama.service_running }}>{{ _("Start") }}</button>
-    </form>
-    <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
-      <input type="hidden" name="akcja" value="stop">
-      <button type="submit" {{ "disabled" if not ollama.service_running }}>{{ _("Stop") }}</button>
-    </form>
-    <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
-      <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if ollama.service_enabled else 'autostart_wlacz' }}">
-      <button type="submit">{{ _("Wyłącz autostart") if ollama.service_enabled else _("Włącz autostart") }}</button>
-    </form>
+    <div class="wiersz-status-uslugi">
+      <div>
+        {% if status and not status.ollama.zainstalowana %}
+          <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
+            <input type="hidden" name="akcja" value="zainstaluj_ollama">
+            <button type="submit" class="primary">{{ _("Zainstaluj Ollamę") }}</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
+          <input type="hidden" name="akcja" value="start">
+          <button type="submit" class="primary" {{ "disabled" if ollama.service_running }}>{{ _("Start") }}</button>
+        </form>
+        <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
+          <input type="hidden" name="akcja" value="stop">
+          <button type="submit" {{ "disabled" if not ollama.service_running }}>{{ _("Stop") }}</button>
+        </form>
+        <form method="post" action="{{ url_for('slave_ollama_update', nazwa=host.nazwa) }}" class="inline">
+          <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if ollama.service_enabled else 'autostart_wlacz' }}">
+          <button type="submit">{{ _("Wyłącz autostart") if ollama.service_enabled else _("Włącz autostart") }}</button>
+        </form>
+        <a href="{{ url_for('modele_widok', nazwa=host.nazwa) }}" class="btn btn-icon" title="{{ _('Modele') }}">📦</a>
+      </div>
+      <div>
+        <span class="pill {{ 'ok' if ollama.service_running else 'blad' }}">
+          {{ _("działa") if ollama.service_running else _("zatrzymana") }}
+        </span>
+        <span class="pill {{ 'ok' if ollama.service_enabled else 'blad' }}">
+          {{ _("autostart włączony") if ollama.service_enabled else _("autostart wyłączony") }}
+        </span>
+      </div>
+    </div>
   </fieldset>
 
   <fieldset>
