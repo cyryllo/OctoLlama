@@ -63,7 +63,6 @@ Controls Ollama on the management host:
 - start / stop / autostart the service,
 - environment variables affecting performance (context size, VRAM,
   Vulkan/iGPU, KV cache, network availability),
-- status of every connected host at a glance,
 - a link to model management (list, sizes, what's currently loaded in
   memory, pulling with a progress bar, deleting).
 
@@ -73,16 +72,21 @@ Adding and removing remote hosts:
 1. Click **Add host**, enter a name and IP address.
 2. The panel generates a ready-made `install-<name>.sh` script.
 3. Download it and run it **once, by hand** on the new machine (e.g. over
-   SSH). The script installs Ollama, mounts the state directory over NFS,
-   and sets up its daemon.
-4. From then on the host shows up in the panel and you control it just like
-   the master.
+   SSH). The script installs Ollama, mounts the state directory over NFS
+   (retrying for a bit if the export on the master isn't ready yet), and
+   sets up its daemon.
+4. From then on the host shows up in the panel with its own icon-button row
+   (hover each for a label): its own "Ollama settings" page — the exact same
+   start/stop/autostart/environment-variable controls as the Master tab,
+   just for that host — plus model management, re-downloading the
+   installer, and removing it.
 
 This is also where **power management** lives: Wake-on-LAN (wake up a
-sleeping or powered-off host — MAC address auto-detected from ARP or entered
-manually) and remote power off / restart / suspend. Typical scenario: a
-mini-PC sleeps and draws no power, you wake it from your phone when you need
-extra compute, and suspend it again from the same tab once you're done.
+sleeping or powered-off host — MAC address shown under its IP, auto-detected
+from ARP or entered manually) and remote power off / restart / suspend —
+each asks for confirmation before acting. Typical scenario: a mini-PC sleeps
+and draws no power, you wake it from your phone when you need extra
+compute, and suspend it again from the same tab once you're done.
 
 ### LLM
 Controls the LiteLLM aggregator:
@@ -138,13 +142,16 @@ own entries with yours every time the service starts.
 
 Different models are good at different jobs — a small model for quick
 autocomplete, a bigger one for chat/agent work with tools. In the same LLM
-tab, each exposed model gets checkboxes for the Continue.dev roles it should
-have: `chat`, `edit`, `apply`, `autocomplete`, `embed`, `rerank`. We suggest
-a default based on the capabilities Ollama reports for that model right next
-to it (e.g. `tools, insert, completion`) — a model with `tools` support
-suggests `edit`/`apply`, one with `insert` suggests `autocomplete`, a
-pure-embedding model suggests `embed` only. Override the checkboxes if you
-disagree. This only changes the generated Continue config below — it
+tab, each exposed model only gets checkboxes for the Continue.dev roles its
+capabilities actually support: `chat`, `edit`, `apply`, `autocomplete`,
+`embed`, `rerank`. This is based on the capabilities Ollama reports for that
+model right next to it (e.g. `tools, insert, completion`) — `tools` support
+is required for `edit`/`apply`, `insert` for `autocomplete`, `embedding` for
+`embed`/`rerank`, and `completion` for `chat`; a model without the right
+capability just doesn't get that checkbox at all, so you can't assign it a
+role that would fail in Continue anyway (a model with no reported
+capabilities at all isn't restricted, since there's nothing to check
+against). This only changes the generated Continue config below — it
 doesn't touch the running LiteLLM service, so saving it doesn't restart
 anything.
 

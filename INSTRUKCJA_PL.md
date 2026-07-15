@@ -58,7 +58,6 @@ Sterowanie Ollamą na hoście zarządzającym:
 - start / stop / autostart usługi,
 - zmienne środowiskowe wpływające na wydajność (rozmiar kontekstu, VRAM,
   Vulkan/iGPU, cache KV, dostępność w sieci),
-- podgląd statusu wszystkich podłączonych hostów,
 - przejście do zarządzania modelami (lista, rozmiary, co jest załadowane
   w pamięci, pobieranie z paskiem postępu, usuwanie).
 
@@ -68,12 +67,18 @@ Dodawanie i zdejmowanie zdalnych hostów:
 1. Kliknij **Dodaj hosta**, podaj nazwę i adres IP.
 2. Panel wygeneruje gotowy skrypt `install-<nazwa>.sh`.
 3. Pobierz go i uruchom **jeden raz, ręcznie** na nowej maszynie (np. przez SSH).
-   Skrypt zainstaluje Ollamę, zamontuje katalog stanu przez NFS i postawi demona.
-4. Od tej chwili host pojawia się w panelu i sterujesz nim jak masterem.
+   Skrypt zainstaluje Ollamę, zamontuje katalog stanu przez NFS (próbując
+   ponownie, jeśli eksport na masterze jeszcze nie gotowy) i postawi demona.
+4. Od tej chwili host pojawia się w panelu z rzędem ikon (podpowiedź po
+   najechaniu): własna strona „Ustawienia Ollamy” — dokładnie te same opcje
+   start/stop/autostart/zmienne środowiskowe co w Masterze, tylko dla tego
+   hosta — a także zarządzanie modelami, ponowne pobranie instalatora i
+   usunięcie hosta.
 
 Tu też jest **zarządzanie zasilaniem**: Wake-on-LAN (obudzenie uśpionego
-lub wyłączonego hosta — adres MAC wykrywany automatycznie z ARP albo wpisywany
-ręcznie) oraz zdalne wyłączenie / restart / uśpienie. Typowy scenariusz:
+lub wyłączonego hosta — adres MAC pokazany pod adresem IP, wykrywany
+automatycznie z ARP albo wpisywany ręcznie) oraz zdalne wyłączenie / restart /
+uśpienie — każde z potwierdzeniem przed wykonaniem. Typowy scenariusz:
 mini-PC śpi i nie zużywa prądu, budzisz go z telefonu, gdy potrzebujesz
 dodatkowej mocy, a po pracy usypiasz z tej samej zakładki.
 
@@ -127,15 +132,17 @@ nadpisze — scala swoje wpisy z Twoimi przy każdym starcie usługi.
 
 Różne modele nadają się do różnych zadań — mały model do szybkiego
 autouzupełniania, większy do czatu/pracy agenta z narzędziami. W tej samej
-zakładce LLM każdy wystawiony model dostaje checkboxy z rolami Continue.dev,
-jakie ma pełnić: `chat`, `edit`, `apply`, `autocomplete`, `embed`, `rerank`.
-Domyślny wybór podpowiadamy na podstawie capability, które Ollama zgłasza dla
-danego modelu tuż obok niego (np. `tools, insert, completion`) — model ze
-wsparciem `tools` podpowiada `edit`/`apply`, model z `insert` podpowiada
-`autocomplete`, czysto embeddingowy model podpowiada tylko `embed`. Jeśli się
-nie zgadzasz, po prostu odznacz/zaznacz checkboxy. To zmienia tylko generowany
-config Continue niżej — nie dotyka działającej usługi LiteLLM, więc zapis nie
-wywołuje restartu.
+zakładce LLM każdy wystawiony model dostaje checkboxy TYLKO dla ról
+Continue.dev, na które faktycznie pozwalają jego capability: `chat`, `edit`,
+`apply`, `autocomplete`, `embed`, `rerank`. Wynika to z tego, co Ollama
+zgłasza dla danego modelu tuż obok niego (np. `tools, insert, completion`) —
+`tools` jest wymagane dla `edit`/`apply`, `insert` dla `autocomplete`,
+`embedding` dla `embed`/`rerank`, a `completion` dla `chat`; model bez
+odpowiedniego capability po prostu nie dostaje danego checkboxa, więc nie da
+się mu przypisać roli, która i tak skończyłaby się błędem w Continue (model
+bez żadnych zgłoszonych capability nie jest ograniczany, bo nie ma z czym
+porównać). To zmienia tylko generowany config Continue niżej — nie dotyka
+działającej usługi LiteLLM, więc zapis nie wywołuje restartu.
 
 ### WebUI
 Start / stop **Open WebUI** — czatu w przeglądarce. Jest podpięty pod LiteLLM,

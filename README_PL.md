@@ -155,14 +155,19 @@ akurat działa. Zatrzymanie demona oznacza, że zmiany zrobione w panelu
 
 Panel ma cztery zakładki:
 
-- **Master** — usługa Ollama i jej zmienne środowiskowe na tym hoście, status
-  wszystkich podłączonych hostów, link do zarządzania modelami.
-- **Slave** — dodawanie/usuwanie zdalnych hostów Ollamy. Po dodaniu hosta
-  panel generuje `install-<nazwa>.sh` — pobierz i uruchom go (przez SSH) na
-  docelowej maszynie; instaluje Ollamę, montuje stan przez NFS i stawia
-  swojego demona. Też Wake-on-LAN (adres MAC wykrywany automatycznie z ARP,
-  gdy host jest osiągalny, albo wpisywany ręcznie) i zdalne wyłączanie/
-  restart/uśpienie per host.
+- **Master** — usługa Ollama i jej zmienne środowiskowe na tym hoście, link
+  do zarządzania modelami.
+- **Slave** — dodawanie/usuwanie zdalnych hostów Ollamy i ich status (MAC
+  pokazany pod adresem IP). Po dodaniu hosta panel generuje
+  `install-<nazwa>.sh` — pobierz i uruchom go (przez SSH) na docelowej
+  maszynie; instaluje Ollamę, montuje stan przez NFS (próbując ponownie,
+  jeśli eksport na masterze jeszcze nie gotowy) i stawia swojego demona.
+  Każdy host ma rząd ikon (podpowiedź po najechaniu) do: własnej strony
+  „Ustawienia Ollamy” (te same opcje start/stop/autostart/zmienne
+  środowiskowe co Master, tylko dla tego hosta), zarządzania modelami,
+  pobrania instalatora ponownie, usunięcia, Wake-on-LAN (MAC wykrywany
+  automatycznie z ARP albo wpisywany ręcznie) oraz zdalnego uśpienia/
+  restartu/wyłączenia — te ostatnie cztery pytają o potwierdzenie.
 - **LLM** — start/stop agregatora LiteLLM, wybór które modele z których
   hostów mają być wystawione, generowanie configu dla Continue.dev, a także
   ustawienia balansowania obciążenia i niezawodności (patrz niżej).
@@ -202,12 +207,15 @@ kolejne restarty.
 ### Role modeli w Continue.dev (zakładka LLM)
 
 Każdemu wystawionemu modelowi można przypisać jedną lub więcej ról Continue.dev:
-`chat`, `edit`, `apply`, `autocomplete`, `embed`, `rerank`. Domyślny wybór jest
-podpowiadany na podstawie capability, które sama Ollama zgłasza dla danego
-modelu (widoczne przy nim) przez `/api/tags`: model z `tools` dostaje
-`edit`/`apply` (akcje oparte o function-calling), model z `insert` dostaje
-`autocomplete` (wsparcie FIM), a model zgłaszający tylko `embedding` dostaje
-`embed` zamiast `chat`. Podpowiedź można nadpisać checkboxami per model — wybór
+`chat`, `edit`, `apply`, `autocomplete`, `embed`, `rerank`. Jako checkboxy
+pokazują się TYLKO role, na które faktycznie pozwalają capability tego modelu
+(domyślnie zaznaczone) — na podstawie tego, co Ollama zgłasza przez
+`/api/tags`: `chat` wymaga `completion`, `autocomplete` wymaga `insert`
+(wsparcie FIM), `edit`/`apply` wymagają `tools` (function-calling), a
+`embed`/`rerank` wymagają `embedding`. Model, który w ogóle nie zgłasza
+żadnych capability (np. starsza Ollama, która ich nie wysyła), nie jest
+ograniczany. Dzięki temu nie da się przypisać roli, która i tak skończyłaby
+się błędem w Continue (np. `edit` na modelu bez wsparcia narzędzi). Wybór
 trafia do klucza `role_modele` w `web/litellm_ustawienia.json` i wpływa
 wyłącznie na generowany config Continue (patrz niżej), nie na działającą
 usługę LiteLLM, więc zapis nie wywołuje restartu.

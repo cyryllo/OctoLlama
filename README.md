@@ -159,13 +159,18 @@ running again.
 The panel has four tabs:
 
 - **Master** — the Ollama service and its environment variables on this host,
-  the status of every connected host, a link to manage models.
-- **Slave** — add/remove remote Ollama hosts. After adding a host, the panel
-  generates `install-<name>.sh` — download and run it (over SSH) on the target
-  machine; it installs Ollama, mounts the state directory over NFS, and sets up
-  its own daemon. Also Wake-on-LAN (the MAC address is auto-detected from the
-  host's ARP entry when it's reachable, or can be entered manually) and remote
-  power off/restart/suspend per host.
+  a link to manage models.
+- **Slave** — add/remove remote Ollama hosts and see each one's status (MAC
+  shown under its IP). After adding a host, the panel generates
+  `install-<name>.sh` — download and run it (over SSH) on the target machine;
+  it installs Ollama, mounts the state directory over NFS (retrying if the
+  export isn't ready on the master yet), and sets up its own daemon. Each
+  host's row has icon buttons (hover for a label) for its own "Ollama
+  settings" page (same start/stop/autostart/environment-variable controls as
+  Master, just for that host), model management, re-downloading the
+  installer, removal, Wake-on-LAN (auto-detected from ARP when reachable, or
+  entered manually), and remote suspend/restart/power-off — the last four ask
+  for confirmation before acting.
 - **LLM** — start/stop the LiteLLM aggregator, choose which models from which
   hosts get exposed, generate the Continue.dev config, plus load balancing and
   reliability settings (see below).
@@ -206,16 +211,18 @@ key, `general_settings`) are preserved across restarts.
 ### Model roles for Continue.dev (LLM tab)
 
 Each exposed model can be assigned one or more Continue.dev roles: `chat`,
-`edit`, `apply`, `autocomplete`, `embed`, `rerank`. The default selection is
-suggested from the capabilities Ollama itself reports for that model (shown
-next to it) via `/api/tags`: a model with `tools` gets `edit`/`apply`
-(function-calling-based actions), one with `insert` gets `autocomplete`
-(FIM support), and a model that only reports `embedding` gets `embed`
-instead of `chat`. You can override the suggestion per model with the
-checkboxes — the choice is stored in `role_modele` inside
-`web/litellm_ustawienia.json` and only affects the generated Continue
-config (see below), not the running LiteLLM service, so saving it doesn't
-trigger a restart.
+`edit`, `apply`, `autocomplete`, `embed`, `rerank`. Only the roles a model's
+capabilities actually support are shown as checkboxes at all (checked by
+default) — determined from what Ollama itself reports for that model (shown
+next to it) via `/api/tags`: `chat` needs `completion`, `autocomplete` needs
+`insert` (FIM support), `edit`/`apply` need `tools` (function-calling), and
+`embed`/`rerank` need `embedding`. A model with none of the required
+capabilities reported (e.g. an older Ollama that doesn't send them at all)
+isn't restricted. This prevents assigning a role that would just fail with
+an error in Continue (e.g. `edit` on a model without tool support). Your
+choice is stored in `role_modele` inside `web/litellm_ustawienia.json` and
+only affects the generated Continue config (see below), not the running
+LiteLLM service, so saving it doesn't trigger a restart.
 
 ## Repo layout
 
