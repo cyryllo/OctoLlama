@@ -356,7 +356,11 @@ def slave_zasilanie(nazwa):
     if not host or akcja not in ("poweroff", "reboot", "suspend"):
         flash(_("Nie znaleziono takiego hosta."))
         return redirect(url_for("slave_widok"))
-    hosts_store.ustaw_zasilanie(nazwa, akcja)
+    try:
+        hosts_store.ustaw_zasilanie(nazwa, akcja)
+    except RuntimeError as e:
+        flash(str(e))
+        return redirect(url_for("slave_widok"))
     oznacz_oczekiwanie(nazwa)
     return redirect(url_for("slave_widok"))
 

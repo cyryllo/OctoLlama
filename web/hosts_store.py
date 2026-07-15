@@ -137,7 +137,18 @@ def ustaw_zasilanie(nazwa, akcja):
     except (OSError, json.JSONDecodeError):
         stan = {}
     stan["zasilanie"] = {"akcja": akcja}
-    sciezka.parent.mkdir(parents=True, exist_ok=True)
-    tmp = sciezka.with_suffix(".tmp")
-    tmp.write_text(json.dumps(stan, indent=2, ensure_ascii=False))
-    tmp.rename(sciezka)
+    try:
+        sciezka.parent.mkdir(parents=True, exist_ok=True)
+        tmp = sciezka.with_suffix(".tmp")
+        tmp.write_text(json.dumps(stan, indent=2, ensure_ascii=False))
+        tmp.rename(sciezka)
+    except OSError as e:
+        # WHY: katalog tego hosta może być niezapisywalny dla usera panelu (np.
+        # świeżo utworzony przez demona z innym właścicielem/uprawnieniami niż
+        # 0777 - patrz WHY w daemon/octollama_daemon.py, zastosuj_eksporty_nfs)
+        # - to ma się skończyć czytelnym komunikatem, nie gołym 500.
+        raise RuntimeError(
+            _("Nie udało się zapisać żądania zasilania dla hosta {nazwa}: {blad}").format(
+                nazwa=nazwa, blad=e
+            )
+        )

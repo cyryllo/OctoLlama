@@ -152,7 +152,15 @@ def _tresc_exports(hosty_nfs):
 
 def zastosuj_eksporty_nfs(hosty_nfs, zmiany):
     for h in hosty_nfs:
-        (HOSTS_BASE / h["nazwa"]).mkdir(parents=True, exist_ok=True)
+        sciezka = HOSTS_BASE / h["nazwa"]
+        sciezka.mkdir(parents=True, exist_ok=True)
+        # WHY: panel WWW (zwykły user, NIE root) zapisuje tu state.json przy
+        # zasilaniu, a zdalny demon dopisuje status.json jako zupełnie inne,
+        # niepowiązane konto (root_squash w eksporcie niżej) - katalog musi być
+        # zapisywalny przez oba, więc 0777 zamiast defaultowego 0755 z mkdir.
+        # Ustawiane przy KAŻDYM przebiegu (nie tylko przy pierwszym utworzeniu),
+        # żeby samo-naprawić uprawnienia, gdyby coś je nadpisało.
+        sciezka.chmod(0o777)
 
     tresc_nowa = _tresc_exports(hosty_nfs)
     tresc_stara = EXPORTS_PLIK.read_text() if EXPORTS_PLIK.exists() else ""

@@ -53,6 +53,7 @@
   "Nie można usunąć tego hosta (master).": "This host (master) cannot be removed.",
   "Nie zainstalowane.": "Not installed.",
   "Nie znaleziono takiego hosta.": "No such host found.",
+  "Nie udało się zapisać żądania zasilania dla hosta {nazwa}: {blad}": "Failed to save the power request for host {nazwa}: {blad}",
   "Nieprawidłowy adres IP.": "Invalid IP address.",
   "Odznacz, żeby wymusić pominięcie zintegrowanego GPU (np. przy problemach na jednolitej architekturze CPU+GPU jak BC-250).": "Uncheck to force skipping the integrated GPU (e.g. for issues on a unified CPU+GPU architecture like BC-250).",
   "Ollama (ten host)": "Ollama (this host)",
