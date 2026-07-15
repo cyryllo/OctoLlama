@@ -229,12 +229,16 @@ def _zastosuj_akcje_ollama(stan, akcja, form):
         # 1:1 z zachowaniem Ollama Managera (ustaw_vulkan).
         env["OLLAMA_VULKAN"] = "1" if form.get("vulkan") else "0"
 
-        # WHY: iGPU jest domyślnie WŁĄCZONE - zaznaczona kratka = wartość
-        # domyślna (usuń zmienną), odznaczona = jawne "false".
+        # WHY: odwrotnie niż mogłoby się wydawać - Ollama domyślnie ODRZUCA
+        # zintegrowane GPU ("dropping integrated GPU; to enable, set
+        # OLLAMA_IGPU_ENABLE=1", potwierdzone w logu na BC-250), więc samo
+        # niepozostawienie zmiennej NIE włącza iGPU. Zaznaczona kratka musi
+        # więc jawnie zapisać "1", inaczej host z samym iGPU (jak BC-250)
+        # cicho liczy na CPU mimo pozornie włączonej opcji w panelu.
         if form.get("igpu"):
-            env.pop("OLLAMA_IGPU_ENABLE", None)
+            env["OLLAMA_IGPU_ENABLE"] = "1"
         else:
-            env["OLLAMA_IGPU_ENABLE"] = "false"
+            env.pop("OLLAMA_IGPU_ENABLE", None)
 
         if form.get("host_lan"):
             env["OLLAMA_HOST"] = "0.0.0.0:11434"

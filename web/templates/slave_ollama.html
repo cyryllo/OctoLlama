@@ -90,8 +90,8 @@
       </p>
 
       <p>
-        <label><input type="checkbox" name="igpu" {{ "checked" if ollama.env.get('OLLAMA_IGPU_ENABLE') != "false" }}> {{ _("Włącz iGPU (OLLAMA_IGPU_ENABLE, domyślnie włączone)") }}</label>
-        <br><small>{{ _("Odznacz, żeby wymusić pominięcie zintegrowanego GPU (np. przy problemach na jednolitej architekturze CPU+GPU jak BC-250).") }}</small>
+        <label><input type="checkbox" name="igpu" {{ "checked" if ollama.env.get('OLLAMA_IGPU_ENABLE') == "1" }}> {{ _("Włącz iGPU (OLLAMA_IGPU_ENABLE)") }}</label>
+        <br><small>{{ _("Ollama domyślnie ODRZUCA zintegrowane GPU (np. w APU jak BC-250) — zaznacz, żeby je jawnie włączyć, inaczej liczenie leci na CPU.") }}</small>
       </p>
 
       <p>
