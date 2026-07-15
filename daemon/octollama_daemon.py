@@ -198,7 +198,14 @@ def zastosuj_zasilanie(cale_dane):
 
     polecenie = {"poweroff": "poweroff", "reboot": "reboot", "suspend": "suspend"}.get(akcja)
     if polecenie:
-        subprocess.run(["systemctl", polecenie], timeout=10)
+        args = ["systemctl", polecenie]
+        # WHY: zwykły "systemctl reboot" na BC-250 potrafił się zawiesić,
+        # czekając na jednostki, które nie chcą się grzecznie zatrzymać -
+        # --force każe systemd ubić je zamiast czekać (wciąż przez systemd,
+        # nie omija go całkiem jak podwójne --force).
+        if polecenie == "reboot":
+            args.append("--force")
+        subprocess.run(args, timeout=10)
     return True
 
 

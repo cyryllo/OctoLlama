@@ -77,9 +77,14 @@ fi
 echo "=== [2/3] Mounting state (NFS from {adres_serwera}) ==="
 command -v mount.nfs >/dev/null 2>&1 || sudo apt-get install -y nfs-common
 sudo mkdir -p /var/lib/octollama/state
-if ! grep -qs "^{eksport} " /etc/fstab; then
-    echo "{eksport} /var/lib/octollama/state nfs defaults 0 0" | sudo tee -a /etc/fstab >/dev/null
-fi
+# WHY: _netdev,nofail - bez tego boot mógł próbować montować NFS zanim sieć
+# w ogóle wstanie i/albo wisieć w nieskończoność, jeśli serwer akurat
+# nieosiągalny. Zawsze podmieniamy starą linię (nie tylko dopisujemy, gdy jej
+# brak) - re-run tego instalatora ma naprawiać hosty zainstalowane, zanim ta
+# opcja tu była.
+sudo sed -i "\\#^{eksport} #d" /etc/fstab
+echo "{eksport} /var/lib/octollama/state nfs _netdev,nofail 0 0" | sudo tee -a /etc/fstab >/dev/null
+sudo systemctl daemon-reload
 mountpoint -q /var/lib/octollama/state || sudo mount /var/lib/octollama/state
 
 echo "=== [3/3] octollama-daemon ==="
