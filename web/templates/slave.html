@@ -20,7 +20,7 @@
           </td>
           <td>
             {% if h.status %}
-              <span class="pill {{ 'ok' if h.status.ok else 'blad' }}">
+              <span class="pill {{ 'ok' if h.status.ollama.service_running else 'blad' }}">
                 {{ _("działa") if h.status.ollama.service_running else _("zatrzymana") }}
               </span>
             {% else %}

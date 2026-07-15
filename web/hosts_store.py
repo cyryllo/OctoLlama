@@ -133,19 +133,25 @@ def wczytaj_stan_hosta(nazwa):
 
     sciezka = _sciezka_state_hosta(nazwa)
     try:
-        return json.loads(sciezka.read_text())
+        stan = json.loads(sciezka.read_text())
     except (OSError, json.JSONDecodeError):
-        stan = json.loads(json.dumps(state_store.DOMYSLNY_STAN))  # deep copy
-        # WHY: dopóki ten host nigdy nie dostał żadnego state.json, "domyślny"
-        # stan musi odzwierciedlać to, co jego demon już zmierzył - inaczej
-        # pierwszy zapis wyzerowałby zmienne środowiskowe sprzed instalacji
-        # (ten sam powód co w state_store.wczytaj_stan).
+        stan = {}
+
+    if "ollama" not in stan:
+        # WHY: state.json mógł już istnieć z zapisu SAMEGO zasilania
+        # (ustaw_zasilanie pisze tylko klucz "zasilanie", nic nie wie o
+        # "ollama") - bez tego `stan["ollama"]` w widoku rzuciłoby KeyError
+        # (500), jeśli user kliknął Restart/Wyłącz zanim cokolwiek zapisał w
+        # "Ustawieniach Ollamy" dla tego hosta. Seedujemy z jego status.json
+        # (co demon już zmierzył), tak samo jak state_store.wczytaj_stan dla
+        # mastera - żeby pierwszy zapis nie wyzerował env sprzed instalacji.
+        stan["ollama"] = json.loads(json.dumps(state_store.DOMYSLNY_STAN["ollama"]))
         status = wczytaj_status_hosta(nazwa)
         if status and "ollama" in status:
             stan["ollama"]["env"] = status["ollama"].get("env", {})
             stan["ollama"]["service_running"] = status["ollama"].get("service_running", False)
             stan["ollama"]["service_enabled"] = status["ollama"].get("service_enabled", False)
-        return stan
+    return stan
 
 
 def zapisz_stan_hosta(nazwa, stan):
