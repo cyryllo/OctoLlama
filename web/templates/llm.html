@@ -1,14 +1,6 @@
 {% extends "base.html" %}
 {% block tresc %}
   <h2>{{ _("LiteLLM (gateway)") }}</h2>
-  <p>
-    {% if not litellm.zainstalowane %}
-      {{ _("Nie zainstalowane.") }}
-    {% else %}
-      {{ _("Usługa") }}: <strong>{{ _("działa") if litellm.dziala else _("zatrzymana") }}</strong> —
-      {{ _("autostart") }}: <strong>{{ _("włączony") if litellm.autostart else _("wyłączony") }}</strong>
-    {% endif %}
-  </p>
   <fieldset>
     <legend>{{ _("Usługa LiteLLM") }}</legend>
     {% if not litellm.zainstalowane %}
@@ -16,19 +8,32 @@
         <input type="hidden" name="akcja" value="zainstaluj">
         <button type="submit" class="primary">{{ _("Zainstaluj LiteLLM") }}</button>
       </form>
+      <p><small>{{ _("Nie zainstalowane.") }}</small></p>
     {% else %}
-      <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
-        <input type="hidden" name="akcja" value="start">
-        <button type="submit" class="primary">{{ _("Restart") if litellm.dziala else _("Start") }}</button>
-      </form>
-      <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
-        <input type="hidden" name="akcja" value="stop">
-        <button type="submit" {{ "disabled" if not litellm.dziala }}>{{ _("Stop") }}</button>
-      </form>
-      <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
-        <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if litellm.autostart else 'autostart_wlacz' }}">
-        <button type="submit">{{ _("Wyłącz autostart") if litellm.autostart else _("Włącz autostart") }}</button>
-      </form>
+      <div class="wiersz-status-uslugi">
+        <div>
+          <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
+            <input type="hidden" name="akcja" value="start">
+            <button type="submit" class="primary">{{ _("Restart") if litellm.dziala else _("Start") }}</button>
+          </form>
+          <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
+            <input type="hidden" name="akcja" value="stop">
+            <button type="submit" {{ "disabled" if not litellm.dziala }}>{{ _("Stop") }}</button>
+          </form>
+          <form method="post" action="{{ url_for('llm_usluga') }}" class="inline">
+            <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if litellm.autostart else 'autostart_wlacz' }}">
+            <button type="submit">{{ _("Wyłącz autostart") if litellm.autostart else _("Włącz autostart") }}</button>
+          </form>
+        </div>
+        <div>
+          <span class="pill {{ 'ok' if litellm.dziala else 'blad' }}">
+            {{ _("działa") if litellm.dziala else _("zatrzymana") }}
+          </span>
+          <span class="pill {{ 'ok' if litellm.autostart else 'blad' }}">
+            {{ _("autostart włączony") if litellm.autostart else _("autostart wyłączony") }}
+          </span>
+        </div>
+      </div>
     {% endif %}
   </fieldset>
 

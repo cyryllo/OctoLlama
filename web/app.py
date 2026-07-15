@@ -185,19 +185,10 @@ def master_widok():
     status = wczytaj_status()
     odswiezaj = czy_odswiezac("master", status)
 
-    hosty_status = []
-    for h in hosts_store.wczytaj_hosty():
-        if h.get("master"):
-            st = status
-        else:
-            st = hosts_store.wczytaj_status_hosta(h["nazwa"])
-        hosty_status.append({"nazwa": h["nazwa"], "adres": h["adres"], "status": st})
-
     return render_template(
         "master.html",
         ollama=stan["ollama"],
         status=status,
-        hosty_status=hosty_status,
         odswiezaj=odswiezaj,
     )
 

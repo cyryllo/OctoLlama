@@ -14,7 +14,10 @@
       {% for h in hosty %}
         <tr>
           <td>{{ h.nazwa }}</td>
-          <td>{{ h.ip }}</td>
+          <td>
+            {{ h.ip }}
+            <br><small>{{ h.mac if h.mac else _("brak MAC") }}</small>
+          </td>
           <td>
             {% if h.status %}
               <span class="pill {{ 'ok' if h.status.ok else 'blad' }}">
@@ -29,32 +32,34 @@
             <a href="{{ url_for('modele_widok', nazwa=h.nazwa) }}" class="btn btn-icon" title="{{ _('Modele') }}">📦</a>
             <a href="{{ url_for('slave_instalator', nazwa=h.nazwa) }}" class="btn btn-icon" title="{{ _('Pobierz instalator') }}">⬇️</a>
             <form method="post" action="{{ url_for('slave_usun', nazwa=h.nazwa) }}" class="inline">
-              <button type="submit" class="danger btn-icon" title="{{ _('Usuń') }}">🗑️</button>
+              <button type="submit" class="danger btn-icon" title="{{ _('Usuń') }}"
+                      onclick="return confirm('{{ _('Usunąć {nazwa} z panelu?').format(nazwa=h.nazwa) }}')">🗑️</button>
             </form>
           </td>
           <td>
             {% if h.mac %}
-              <small>{{ h.mac }}</small>
               <form method="post" action="{{ url_for('slave_wybudz', nazwa=h.nazwa) }}" class="inline">
                 <button type="submit" class="primary btn-icon" title="{{ _('Wybudź') }}">⚡</button>
               </form>
             {% else %}
-              <small>{{ _("brak MAC") }}</small>
               <form method="post" action="{{ url_for('slave_wykryj_mac', nazwa=h.nazwa) }}" class="inline">
                 <button type="submit" class="btn-icon" title="{{ _('Wykryj MAC') }}">🔍</button>
               </form>
             {% endif %}
             <form method="post" action="{{ url_for('slave_zasilanie', nazwa=h.nazwa) }}" class="inline">
               <input type="hidden" name="akcja" value="suspend">
-              <button type="submit" class="btn-icon" title="{{ _('Uśpij') }}">🌙</button>
+              <button type="submit" class="btn-icon" title="{{ _('Uśpij') }}"
+                      onclick="return confirm('{{ _('Uśpić {nazwa}?').format(nazwa=h.nazwa) }}')">🌙</button>
             </form>
             <form method="post" action="{{ url_for('slave_zasilanie', nazwa=h.nazwa) }}" class="inline">
               <input type="hidden" name="akcja" value="reboot">
-              <button type="submit" class="btn-icon" title="{{ _('Restart') }}">🔁</button>
+              <button type="submit" class="btn-icon" title="{{ _('Restart') }}"
+                      onclick="return confirm('{{ _('Zrestartować {nazwa}?').format(nazwa=h.nazwa) }}')">🔁</button>
             </form>
             <form method="post" action="{{ url_for('slave_zasilanie', nazwa=h.nazwa) }}" class="inline">
               <input type="hidden" name="akcja" value="poweroff">
-              <button type="submit" class="danger btn-icon" title="{{ _('Wyłącz') }}">⏻</button>
+              <button type="submit" class="danger btn-icon" title="{{ _('Wyłącz') }}"
+                      onclick="return confirm('{{ _('Wyłączyć {nazwa}?').format(nazwa=h.nazwa) }}')">⏻</button>
             </form>
           </td>
         </tr>

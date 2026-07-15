@@ -6,32 +6,39 @@
 
   <h2>{{ _("Ollama (ten host)") }}</h2>
 
-  <p>
-    {{ _("Usługa") }}: <strong>{{ _("działa") if ollama.service_running else _("zatrzymana") }}</strong> —
-    {{ _("autostart") }}: <strong>{{ _("włączony") if ollama.service_enabled else _("wyłączony") }}</strong>
-    — <a href="{{ url_for('modele_widok', nazwa='master') }}">{{ _("zarządzaj modelami →") }}</a>
-  </p>
-
   <fieldset>
     <legend>{{ _("Usługa") }}</legend>
-    {% if status and not status.ollama.zainstalowana %}
-      <form method="post" action="{{ url_for('master_update') }}" class="inline">
-        <input type="hidden" name="akcja" value="zainstaluj_ollama">
-        <button type="submit" class="primary">{{ _("Zainstaluj Ollamę") }}</button>
-      </form>
-    {% endif %}
-    <form method="post" action="{{ url_for('master_update') }}" class="inline">
-      <input type="hidden" name="akcja" value="start">
-      <button type="submit" class="primary" {{ "disabled" if ollama.service_running }}>{{ _("Start") }}</button>
-    </form>
-    <form method="post" action="{{ url_for('master_update') }}" class="inline">
-      <input type="hidden" name="akcja" value="stop">
-      <button type="submit" {{ "disabled" if not ollama.service_running }}>{{ _("Stop") }}</button>
-    </form>
-    <form method="post" action="{{ url_for('master_update') }}" class="inline">
-      <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if ollama.service_enabled else 'autostart_wlacz' }}">
-      <button type="submit">{{ _("Wyłącz autostart") if ollama.service_enabled else _("Włącz autostart") }}</button>
-    </form>
+    <div class="wiersz-status-uslugi">
+      <div>
+        {% if status and not status.ollama.zainstalowana %}
+          <form method="post" action="{{ url_for('master_update') }}" class="inline">
+            <input type="hidden" name="akcja" value="zainstaluj_ollama">
+            <button type="submit" class="primary">{{ _("Zainstaluj Ollamę") }}</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('master_update') }}" class="inline">
+          <input type="hidden" name="akcja" value="start">
+          <button type="submit" class="primary" {{ "disabled" if ollama.service_running }}>{{ _("Start") }}</button>
+        </form>
+        <form method="post" action="{{ url_for('master_update') }}" class="inline">
+          <input type="hidden" name="akcja" value="stop">
+          <button type="submit" {{ "disabled" if not ollama.service_running }}>{{ _("Stop") }}</button>
+        </form>
+        <form method="post" action="{{ url_for('master_update') }}" class="inline">
+          <input type="hidden" name="akcja" value="{{ 'autostart_wylacz' if ollama.service_enabled else 'autostart_wlacz' }}">
+          <button type="submit">{{ _("Wyłącz autostart") if ollama.service_enabled else _("Włącz autostart") }}</button>
+        </form>
+        <a href="{{ url_for('modele_widok', nazwa='master') }}" class="btn btn-icon" title="{{ _('Modele') }}">📦</a>
+      </div>
+      <div>
+        <span class="pill {{ 'ok' if ollama.service_running else 'blad' }}">
+          {{ _("działa") if ollama.service_running else _("zatrzymana") }}
+        </span>
+        <span class="pill {{ 'ok' if ollama.service_enabled else 'blad' }}">
+          {{ _("autostart włączony") if ollama.service_enabled else _("autostart wyłączony") }}
+        </span>
+      </div>
+    </div>
   </fieldset>
 
   <fieldset>
@@ -93,31 +100,11 @@
     </form>
   </fieldset>
 
-  <h2>{{ _("Podłączone hosty") }}</h2>
-  <table>
-    <thead>
-      <tr><th>{{ _("Host") }}</th><th>{{ _("Adres") }}</th><th>{{ _("Usługa") }}</th><th>{{ _("Ostatnio") }}</th></tr>
-    </thead>
-    <tbody>
-      {% for h in hosty_status %}
-        <tr>
-          <td>{{ h.nazwa }}{{ " (master)" if h.nazwa == "master" }}</td>
-          <td>{{ h.adres }}</td>
-          {% if h.status %}
-            <td><span class="pill {{ 'ok' if h.status.ok else 'blad' }}">
-              {{ _("działa") if h.status.ollama.service_running else _("zatrzymana") }}
-            </span></td>
-            <td>{{ h.status.timestamp | formatuj_czas }}</td>
-          {% else %}
-            <td colspan="2"><small>{{ _("brak danych (demon jeszcze nie zapisał statusu)") }}</small></td>
-          {% endif %}
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <p><small>{{ _("Dodawanie/usuwanie hostów w zakładce") }} <a href="{{ url_for('slave_widok') }}">Slave</a>.</small></p>
-
-  {% if status %}
+  {# WHY: ukryte na razie na życzenie usera (2026-07-15) - zbyt techniczne dla
+     głównego widoku, docelowo ma się przenieść do planowanej zakładki "Logi"
+     (patrz pamięć projektu octollama-logi-tab). Zostawione w kodzie, nie
+     usunięte, żeby łatwo przywrócić. #}
+  {# {% if status %}
     <p><span class="pill {{ 'ok' if status.ok else 'blad' }}">
       {{ _("Ostatnio zastosowano") }}: {{ status.timestamp | formatuj_czas }}
       {% if status.zmiany %} — {{ status.zmiany | join("; ") }}{% else %} — {{ _("bez zmian") }}{% endif %}
@@ -125,5 +112,5 @@
     </span></p>
   {% else %}
     <p><small>{{ _("Demon jeszcze nie zapisał status.json na tym hoście.") }}</small></p>
-  {% endif %}
+  {% endif %} #}
 {% endblock %}
