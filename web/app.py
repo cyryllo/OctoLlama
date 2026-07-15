@@ -202,19 +202,17 @@ def master_widok():
     )
 
 
-@app.route("/master/update", methods=["POST"])
-@login_required
-def master_update():
-    stan = wczytaj_stan()
-    akcja = request.form.get("akcja")
-
+def _zastosuj_akcje_ollama(stan, akcja, form):
+    # WHY: wspólna logika dla mastera (master_update) i dowolnego zdalnego
+    # hosta (slave_ollama_update) - to samo state.json["ollama"] stosuje ten
+    # sam demon (daemon/octollama_daemon.py) niezależnie, na którym hoście stoi.
     if akcja == "zainstaluj_ollama":
         stan["ollama"]["zainstaluj_ollama"] = True
     elif akcja == "zapisz_env":
         env = stan["ollama"]["env"]
 
         def ustaw_tekst(nazwa, pole):
-            wartosc = request.form.get(pole, "").strip()
+            wartosc = form.get(pole, "").strip()
             if wartosc:
                 env[nazwa] = wartosc
             else:
@@ -223,7 +221,7 @@ def master_update():
         def ustaw_wybor(nazwa, pole):
             # WHY: pusta wartość z <select> to świadomy wybór "domyślne", tak
             # samo jak puste pole tekstowe — usuwa zmienną, nie ustawia "".
-            wartosc = request.form.get(pole, "")
+            wartosc = form.get(pole, "")
             if wartosc:
                 env[nazwa] = wartosc
             else:
@@ -238,16 +236,16 @@ def master_update():
 
         # WHY: Vulkan zapisuje jawne "0" gdy wyłączony (nie usuwa zmiennej) -
         # 1:1 z zachowaniem Ollama Managera (ustaw_vulkan).
-        env["OLLAMA_VULKAN"] = "1" if request.form.get("vulkan") else "0"
+        env["OLLAMA_VULKAN"] = "1" if form.get("vulkan") else "0"
 
         # WHY: iGPU jest domyślnie WŁĄCZONE - zaznaczona kratka = wartość
         # domyślna (usuń zmienną), odznaczona = jawne "false".
-        if request.form.get("igpu"):
+        if form.get("igpu"):
             env.pop("OLLAMA_IGPU_ENABLE", None)
         else:
             env["OLLAMA_IGPU_ENABLE"] = "false"
 
-        if request.form.get("host_lan"):
+        if form.get("host_lan"):
             env["OLLAMA_HOST"] = "0.0.0.0:11434"
         else:
             env.pop("OLLAMA_HOST", None)
@@ -260,6 +258,12 @@ def master_update():
     elif akcja == "autostart_wylacz":
         stan["ollama"]["service_enabled"] = False
 
+
+@app.route("/master/update", methods=["POST"])
+@login_required
+def master_update():
+    stan = wczytaj_stan()
+    _zastosuj_akcje_ollama(stan, request.form.get("akcja"), request.form)
     zapisz_stan(stan)
     oznacz_oczekiwanie("master")
     return redirect(url_for("master_widok"))
@@ -279,6 +283,39 @@ def slave_widok():
         if czy_odswiezac(h["nazwa"], status):
             odswiezaj = True
     return render_template("slave.html", hosty=hosty, odswiezaj=odswiezaj)
+
+
+@app.route("/slave/<nazwa>/ollama")
+@login_required
+def slave_ollama_widok(nazwa):
+    host = hosts_store.znajdz_host(nazwa)
+    if not host or host.get("master"):
+        flash(_("Nie znaleziono takiego hosta."))
+        return redirect(url_for("slave_widok"))
+    stan = hosts_store.wczytaj_stan_hosta(nazwa)
+    status = hosts_store.wczytaj_status_hosta(nazwa)
+    odswiezaj = czy_odswiezac(nazwa, status)
+    return render_template(
+        "slave_ollama.html",
+        host=host,
+        ollama=stan["ollama"],
+        status=status,
+        odswiezaj=odswiezaj,
+    )
+
+
+@app.route("/slave/<nazwa>/ollama/update", methods=["POST"])
+@login_required
+def slave_ollama_update(nazwa):
+    host = hosts_store.znajdz_host(nazwa)
+    if not host or host.get("master"):
+        flash(_("Nie znaleziono takiego hosta."))
+        return redirect(url_for("slave_widok"))
+    stan = hosts_store.wczytaj_stan_hosta(nazwa)
+    _zastosuj_akcje_ollama(stan, request.form.get("akcja"), request.form)
+    hosts_store.zapisz_stan_hosta(nazwa, stan)
+    oznacz_oczekiwanie(nazwa)
+    return redirect(url_for("slave_ollama_widok", nazwa=nazwa))
 
 
 @app.route("/slave/dodaj", methods=["POST"])

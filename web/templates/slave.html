@@ -25,6 +25,7 @@
             {% endif %}
           </td>
           <td>
+            <a href="{{ url_for('slave_ollama_widok', nazwa=h.nazwa) }}" class="btn">{{ _("Ustawienia Ollamy") }}</a>
             <a href="{{ url_for('modele_widok', nazwa=h.nazwa) }}" class="btn">{{ _("Modele") }}</a>
             <a href="{{ url_for('slave_instalator', nazwa=h.nazwa) }}" class="btn">{{ _("Pobierz instalator") }}</a>
             <form method="post" action="{{ url_for('slave_usun', nazwa=h.nazwa) }}" class="inline">

@@ -1,5 +1,7 @@
 {
   "← Wróć do LLM": "← Back to LLM",
+  "← Wróć do Slave": "← Back to Slave",
+  "Ustawienia Ollamy": "Ollama settings",
   "Adres": "Address",
   "Adres IP": "IP address",
   "autostart": "autostart",

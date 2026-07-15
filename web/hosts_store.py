@@ -124,6 +124,38 @@ def _sciezka_state_hosta(nazwa):
     return HOSTS_STATE_BASE / nazwa / "state.json"
 
 
+def wczytaj_stan_hosta(nazwa):
+    # WHY: jak state_store.wczytaj_stan(), ale dla DOWOLNEGO zdalnego hosta -
+    # zakładka Slave pozwala edytować zmienne środowiskowe Ollamy per-host, nie
+    # tylko dla mastera (ten sam kształt state.json["ollama"], ten sam demon
+    # go stosuje niezależnie od hosta, patrz daemon/octollama_daemon.py).
+    import state_store
+
+    sciezka = _sciezka_state_hosta(nazwa)
+    try:
+        return json.loads(sciezka.read_text())
+    except (OSError, json.JSONDecodeError):
+        stan = json.loads(json.dumps(state_store.DOMYSLNY_STAN))  # deep copy
+        # WHY: dopóki ten host nigdy nie dostał żadnego state.json, "domyślny"
+        # stan musi odzwierciedlać to, co jego demon już zmierzył - inaczej
+        # pierwszy zapis wyzerowałby zmienne środowiskowe sprzed instalacji
+        # (ten sam powód co w state_store.wczytaj_stan).
+        status = wczytaj_status_hosta(nazwa)
+        if status and "ollama" in status:
+            stan["ollama"]["env"] = status["ollama"].get("env", {})
+            stan["ollama"]["service_running"] = status["ollama"].get("service_running", False)
+            stan["ollama"]["service_enabled"] = status["ollama"].get("service_enabled", False)
+        return stan
+
+
+def zapisz_stan_hosta(nazwa, stan):
+    sciezka = _sciezka_state_hosta(nazwa)
+    sciezka.parent.mkdir(parents=True, exist_ok=True)
+    tmp = sciezka.with_suffix(".tmp")
+    tmp.write_text(json.dumps(stan, indent=2, ensure_ascii=False))
+    tmp.rename(sciezka)
+
+
 def ustaw_zasilanie(nazwa, akcja):
     # WHY: wyłączenie/restart/uśpienie to operacja uprzywilejowana na TAMTYM
     # hoście - panel WWW nie woła niczego bezpośrednio, tylko zapisuje żądanie
