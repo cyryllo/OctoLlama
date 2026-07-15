@@ -85,7 +85,23 @@ sudo mkdir -p /var/lib/octollama/state
 sudo sed -i "\\#^{eksport} #d" /etc/fstab
 echo "{eksport} /var/lib/octollama/state nfs _netdev,nofail 0 0" | sudo tee -a /etc/fstab >/dev/null
 sudo systemctl daemon-reload
-mountpoint -q /var/lib/octollama/state || sudo mount /var/lib/octollama/state
+# WHY: eksport NFS na {adres_serwera} powstaje dopiero, gdy jego demon
+# przetworzy dodanie tego hosta (patrz zastosuj_eksporty_nfs) - jeśli ten
+# instalator odpala się od razu po dodaniu hosta w panelu, pierwsza próba
+# montowania może jeszcze trafić na nieistniejący eksport. Próbujemy więc
+# kilka razy zamiast wywalać się od razu na pierwszym niepowodzeniu.
+if ! mountpoint -q /var/lib/octollama/state; then
+    for proba in $(seq 1 15); do
+        sudo mount /var/lib/octollama/state 2>/dev/null && break
+        echo "Export NFS z {adres_serwera} jeszcze niegotowy, próba $proba/15..."
+        sleep 2
+    done
+fi
+mountpoint -q /var/lib/octollama/state || {{
+    echo "BŁĄD: nie udało się zamontować stanu z {adres_serwera} po kilku próbach." >&2
+    echo "Sprawdź, czy host jest dodany w zakładce Slave panelu WWW, i spróbuj ponownie." >&2
+    exit 1
+}}
 
 echo "=== [3/3] octollama-daemon ==="
 sudo mkdir -p /opt/octollama/daemon
