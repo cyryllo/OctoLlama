@@ -4,6 +4,8 @@
     <meta http-equiv="refresh" content="2">
   {% endif %}
 
+  <p><a href="{{ url_for('slave_widok') }}" class="btn">{{ _("← Wróć do Slave") }}</a></p>
+
   <h2>{{ _("Ollama") }} — {{ host.nazwa }}</h2>
   <p><small>{{ host.adres }}</small></p>
 
@@ -110,6 +112,4 @@
   {% else %}
     <p><small>{{ _("Demon jeszcze nie zapisał status.json na tym hoście.") }}</small></p>
   {% endif %}
-
-  <p><a href="{{ url_for('slave_widok') }}">{{ _("← Wróć do Slave") }}</a></p>
 {% endblock %}
