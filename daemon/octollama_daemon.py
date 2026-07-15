@@ -17,7 +17,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+
+# WHY: zwykły (natywny, inotify) Observer nie widzi niezawodnie zmian robionych
+# ZDALNIE przez inny klient NFS - kernel dowiaduje się o nich dopiero przy
+# odświeżeniu cache atrybutów (patrz actimeo w instalatorze), co nie zawsze
+# generuje zdarzenie inotify. PollingObserver aktywnie sprawdza plik zamiast
+# czekać na powiadomienie - działa tak samo na masterze (lokalny dysk) i na
+# zdalnych hostach (NFS), kosztem odpytywania zamiast czystego push.
+from watchdog.observers.polling import PollingObserver as Observer
 
 SERVICE_NAME = "ollama"
 # WHY: ta sama zmienna środowiskowa co w web/state_store.py — oba procesy muszą
@@ -273,8 +280,10 @@ def przetworz():
 
 
 # =============================================================================
-#  Pętla demona — inotify na KATALOG, nie na sam plik (atomowy zapis to
-#  zwykle rename, trzeba łapać IN_MOVED_TO/IN_CLOSE_WRITE, nie IN_MODIFY)
+#  Pętla demona — obserwacja KATALOGU, nie samego pliku (atomowy zapis to
+#  zwykle rename, trzeba łapać IN_MOVED_TO/IN_CLOSE_WRITE, nie IN_MODIFY).
+#  PollingObserver (patrz import Observer wyżej) na tę samą atomową podmianę
+#  reaguje zdarzeniem "created", nie "moved" - łapiemy więc oba warianty.
 # =============================================================================
 class StateHandler(FileSystemEventHandler):
     def on_moved(self, event):
@@ -282,6 +291,10 @@ class StateHandler(FileSystemEventHandler):
             przetworz()
 
     def on_closed(self, event):
+        if Path(event.src_path) == STATE_PATH:
+            przetworz()
+
+    def on_created(self, event):
         if Path(event.src_path) == STATE_PATH:
             przetworz()
 
