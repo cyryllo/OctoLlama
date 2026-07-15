@@ -79,11 +79,13 @@ command -v mount.nfs >/dev/null 2>&1 || sudo apt-get install -y nfs-common
 sudo mkdir -p /var/lib/octollama/state
 # WHY: _netdev,nofail - bez tego boot mógł próbować montować NFS zanim sieć
 # w ogóle wstanie i/albo wisieć w nieskończoność, jeśli serwer akurat
-# nieosiągalny. Zawsze podmieniamy starą linię (nie tylko dopisujemy, gdy jej
-# brak) - re-run tego instalatora ma naprawiać hosty zainstalowane, zanim ta
-# opcja tu była.
+# nieosiągalny. actimeo=15 skraca domyślny cache atrybutów NFS (inaczej
+# 30-60s, zanim zmiana zapisana przez mastera w ogóle stanie się widoczna
+# tutaj) - kompromis między szybkością wykrycia zmiany a ruchem NFS. Zawsze
+# podmieniamy starą linię (nie tylko dopisujemy, gdy jej brak) - re-run tego
+# instalatora ma naprawiać hosty zainstalowane, zanim te opcje tu były.
 sudo sed -i "\\#^{eksport} #d" /etc/fstab
-echo "{eksport} /var/lib/octollama/state nfs _netdev,nofail 0 0" | sudo tee -a /etc/fstab >/dev/null
+echo "{eksport} /var/lib/octollama/state nfs _netdev,nofail,actimeo=15 0 0" | sudo tee -a /etc/fstab >/dev/null
 sudo systemctl daemon-reload
 # WHY: eksport NFS na {adres_serwera} powstaje dopiero, gdy jego demon
 # przetworzy dodanie tego hosta (patrz zastosuj_eksporty_nfs) - jeśli ten
