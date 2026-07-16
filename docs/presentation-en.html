@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>octollama — how it works</title>
+<style>
+  :root{
+    --bg:#0b1120; --panel:#111a2e; --panel2:#0e1626;
+    --ink:#e8eef7; --muted:#8fa2bd; --line:#24304a;
+    --amber:#f5a524; --teal:#2dd4bf; --purple:#a78bfa; --coral:#f26d6d;
+    --green:#7bd88f;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  header{
+    display:flex; align-items:baseline; gap:14px;
+    justify-content:center; padding:28px 26px 10px;
+  }
+  header h1{
+    font-size:1.5rem; letter-spacing:.04em; font-weight:700;
+  }
+  header h1 .octo{color:var(--amber);}
+  header .sub{color:var(--muted); font-size:.9rem;}
+  #stage{flex:1; min-height:0; position:relative;}
+  #stage svg{width:100%; height:100%; display:block; transition:opacity .95s ease;}
+
+  /* ---------- chmurka opisu sceny ---------- */
+  /* CO: dymek obok Mastera zamiast paska na dole.
+     DLACZEGO foreignObject: SVG-owy <text> nie łamie wierszy,
+     a zwykły HTML w środku robi to sam. */
+  #bubble-body{
+    background:rgba(17,26,46,.92);
+    border:1.5px solid var(--amber);
+    border-radius:16px;
+    padding:16px 18px;
+    font-family:"Segoe UI", system-ui, sans-serif;
+  }
+  #bubble-title{font-size:15px; font-weight:700; color:var(--amber); margin-bottom:8px;}
+  #bubble-text{font-size:13px; color:var(--muted); line-height:1.5;}
+  #bubble{transition:opacity 1s ease;}
+  .tail{fill:rgba(17,26,46,.92); stroke:var(--amber); stroke-width:1.5;}
+
+  /* ---------- SVG: styl węzłów ---------- */
+  text{font-family:"Segoe UI", system-ui, sans-serif; fill:var(--ink);}
+  .mono{font-family:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+        fill:var(--muted); font-size:11px;}
+  .node-box{fill:var(--panel); stroke:var(--line); stroke-width:1.5; rx:14;}
+  .node-title{font-weight:700; font-size:15px;}
+  .chip{fill:var(--panel2); stroke:var(--line); rx:8;}
+  .chip-label{font-size:11.5px; fill:var(--ink);}
+  .tentacle{
+    fill:none; stroke:var(--line); stroke-width:2.5;
+    stroke-linecap:round;
+  }
+  .tentacle.active{stroke:var(--teal); opacity:.85;}
+  .tentacle.mgmt{stroke:var(--amber); stroke-dasharray:6 7; opacity:.8;}
+  .hidden-el{opacity:0; pointer-events:none; transition:opacity 2.2s ease;}
+  #packets{transition:opacity .9s ease;}
+  .shown{opacity:1;}
+  .dim{opacity:.28; transition:opacity .7s;}
+  .offline .node-box{stroke:var(--coral);}
+  .badge{font-size:11px; font-weight:700;}
+  #wave-defs{position:absolute; width:0; height:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="octo">octo</span>llama</h1>
+  <span class="sub">one master · many AI hosts · one home network</span>
+</header>
+
+<div id="stage">
+<svg viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid meet" aria-label="Animated diagram of how OctoLlama works">
+
+  <!-- ================= POŁĄCZENIA (rysowane pod węzłami) ================= -->
+  <g id="links">
+    <path id="p-user-panel"  class="tentacle hidden-el" d="M 245 120 C 340 140, 400 180, 452 218"/>
+    <path id="p-app-litellm" class="tentacle hidden-el" d="M 985 105 C 880 130, 790 170, 700 230"/>
+    <!-- macki master -> slave (zarządzanie: NFS + demon) -->
+    <path id="t-s1" class="tentacle mgmt hidden-el" d="M 520 400 C 430 460, 330 470, 250 505"/>
+    <path id="t-s2" class="tentacle mgmt hidden-el" d="M 600 405 C 600 445, 600 465, 600 500"/>
+    <path id="t-s3" class="tentacle mgmt hidden-el" d="M 680 400 C 770 460, 870 470, 950 505"/>
+    <!-- ruch AI: LiteLLM -> Ollama na hostach -->
+    <path id="d-master" class="tentacle hidden-el" d="M 660 300 C 700 305, 720 310, 745 318"/>
+    <path id="d-s1" class="tentacle hidden-el" d="M 560 405 C 470 455, 360 475, 265 520"/>
+    <path id="d-s2" class="tentacle hidden-el" d="M 615 405 C 618 445, 620 470, 620 515"/>
+    <path id="d-s3" class="tentacle hidden-el" d="M 665 405 C 760 455, 860 475, 955 520"/>
+  </g>
+
+  <!-- ================= UŻYTKOWNIK ================= -->
+  <g id="n-user" class="hidden-el">
+    <rect class="node-box" x="60" y="60" width="190" height="86" rx="14"/>
+    <text class="node-title" x="80" y="92">📱💻 You</text>
+    <text class="mono" x="80" y="114">browser → panel</text>
+    <text class="mono" x="80" y="130">http://master:5000</text>
+  </g>
+
+  <!-- ================= APLIKACJE ================= -->
+  <g id="n-apps" class="hidden-el">
+    <rect class="node-box" x="960" y="48" width="200" height="96" rx="14"/>
+    <text class="node-title" x="980" y="80">VS Code · chat</text>
+    <text class="mono" x="980" y="102">Continue.dev, Open WebUI,</text>
+    <text class="mono" x="980" y="118">any OpenAI-compatible app</text>
+  </g>
+
+  <!-- ================= MASTER ================= -->
+  <g id="n-master">
+    <rect class="node-box" x="420" y="190" width="360" height="216" rx="18"
+          style="stroke:var(--amber); stroke-width:2;"/>
+    <text class="node-title" x="446" y="222" style="fill:var(--amber);">MASTER — management host</text>
+
+    <g id="m-panel">
+      <rect class="chip" x="446" y="238" width="150" height="42" rx="8"/>
+      <text class="chip-label" x="458" y="255">Web panel</text>
+      <text class="mono" x="458" y="271">:5000 · login</text>
+    </g>
+    <g id="m-litellm">
+      <rect class="chip" x="446" y="290" width="150" height="42" rx="8"
+            style="stroke:var(--teal);"/>
+      <text class="chip-label" x="458" y="307">LiteLLM</text>
+      <text class="mono" x="458" y="323">:4000 · gateway</text>
+    </g>
+    <g id="m-ollama">
+      <rect class="chip" x="616" y="290" width="140" height="42" rx="8"
+            style="stroke:var(--purple);"/>
+      <text class="chip-label" x="628" y="307">Ollama</text>
+      <text class="mono" x="628" y="323">:11434 · models</text>
+    </g>
+    <g id="m-daemon">
+      <rect class="chip" x="446" y="342" width="150" height="42" rx="8"
+            style="stroke:var(--coral);"/>
+      <text class="chip-label" x="458" y="359">Root daemon</text>
+      <text class="mono" x="458" y="375">state.json · 0 ports</text>
+    </g>
+    <g id="m-nfs">
+      <rect class="chip" x="616" y="342" width="140" height="42" rx="8"/>
+      <text class="chip-label" x="628" y="359">NFS server</text>
+      <text class="mono" x="628" y="375">state per host</text>
+    </g>
+    <g id="m-webui">
+      <rect class="chip" x="616" y="238" width="140" height="42" rx="8"/>
+      <text class="chip-label" x="628" y="255">Open WebUI</text>
+      <text class="mono" x="628" y="271">chat → LiteLLM</text>
+    </g>
+  </g>
+
+  <!-- ================= SLAVE 1 ================= -->
+  <g id="n-s1" class="hidden-el">
+    <rect class="node-box" x="110" y="500" width="230" height="110" rx="14"/>
+    <text class="node-title" x="132" y="530">SLAVE 1 · mini-PC</text>
+    <rect class="chip" x="132" y="544" width="90" height="26" rx="7" style="stroke:var(--purple);"/>
+    <text class="chip-label" x="142" y="561">Ollama</text>
+    <rect class="chip" x="232" y="544" width="86" height="26" rx="7" style="stroke:var(--coral);"/>
+    <text class="chip-label" x="242" y="561">daemon</text>
+    <text class="mono" x="132" y="592">state over NFS · 7B models</text>
+  </g>
+
+  <!-- ================= SLAVE 2 ================= -->
+  <g id="n-s2" class="hidden-el">
+    <rect class="node-box" x="485" y="500" width="230" height="110" rx="14"/>
+    <text class="node-title" x="507" y="530">SLAVE 2 · BC-250</text>
+    <rect class="chip" x="507" y="544" width="90" height="26" rx="7" style="stroke:var(--purple);"/>
+    <text class="chip-label" x="517" y="561">Ollama</text>
+    <rect class="chip" x="607" y="544" width="86" height="26" rx="7" style="stroke:var(--coral);"/>
+    <text class="chip-label" x="617" y="561">daemon</text>
+    <text class="mono" x="507" y="592">state over NFS · 14B models</text>
+    <text id="s2-zzz" class="hidden-el" x="690" y="512" font-size="22">💤</text>
+  </g>
+
+  <!-- ================= SLAVE 3 ================= -->
+  <g id="n-s3" class="hidden-el">
+    <rect class="node-box" x="860" y="500" width="230" height="110" rx="14"/>
+    <text class="node-title" x="882" y="530">SLAVE 3 · laptop</text>
+    <rect class="chip" x="882" y="544" width="90" height="26" rx="7" style="stroke:var(--purple);"/>
+    <text class="chip-label" x="892" y="561">Ollama</text>
+    <rect class="chip" x="982" y="544" width="86" height="26" rx="7" style="stroke:var(--coral);"/>
+    <text class="chip-label" x="992" y="561">daemon</text>
+    <text class="mono" x="882" y="592">state over NFS · embeddings</text>
+    <text id="s3-x" class="hidden-el" x="1062" y="514" font-size="20">⚠️</text>
+  </g>
+
+  <!-- etykieta „…i kolejne" -->
+  <text id="lbl-more" class="mono hidden-el" x="1188" y="628" font-size="13" text-anchor="end">…and more hosts</text>
+
+  <!-- warstwa pakietów -->
+  <g id="packets"></g>
+
+  <!-- chmurka z opisem sceny — pozycję (lewo/prawo od Mastera) ustawia JS -->
+  <g id="bubble">
+    <!-- ogonek dymka: prawy = chmurka po lewej wskazuje Mastera, i odwrotnie -->
+    <polygon id="tail-right" class="tail" points="333,118 366,132 333,146"/>
+    <polygon id="tail-left"  class="tail" points="2,118 -31,132 2,146"/>
+    <foreignObject x="0" y="0" width="335" height="300">
+      <div xmlns="http://www.w3.org/1999/xhtml" id="bubble-body">
+        <div id="bubble-title"></div>
+        <div id="bubble-text"></div>
+      </div>
+    </foreignObject>
+  </g>
+
+  <!-- finał: wizytówka projektu z linkiem do GitHuba -->
+  <g id="cta" class="hidden-el" style="cursor:pointer;">
+    <a href="https://github.com/cyryllo/OctoLlama" target="_blank" rel="noopener">
+      <rect x="360" y="148" width="480" height="336" rx="22"
+            fill="rgba(11,17,32,.95)" stroke="var(--amber)" stroke-width="2"/>
+      <image href="https://github.com/cyryllo/OctoLlama/raw/main/logo_octollama.png"
+             x="498" y="158" width="204" height="204"/>
+      <text x="600" y="392" text-anchor="middle" font-size="27" font-weight="700">
+        <tspan style="fill:var(--amber);">octo</tspan><tspan>llama</tspan>
+      </text>
+      <text x="600" y="424" text-anchor="middle" font-size="16" style="fill:var(--green);">
+        Get it for free · open source · GPL-3.0
+      </text>
+      <text x="600" y="458" text-anchor="middle" class="mono" font-size="15"
+            style="fill:var(--amber); text-decoration:underline;">
+        github.com/cyryllo/OctoLlama
+      </text>
+    </a>
+  </g>
+</svg>
+</div>
+
+
+<script>
+(() => {
+  // ===================== DEFINICJA SCEN =====================
+  // CO: każda scena mówi, które elementy pokazać, które przygasić
+  //     i którymi ścieżkami mają płynąć pakiety.
+  // DLACZEGO tak: jedna tablica danych zamiast rozsypanej logiki —
+  //     łatwo dodać/zmienić scenę bez ruszania silnika animacji.
+  const SCENES = [
+    {
+      title: "1. One master controls everything",
+      text:  "One computer runs the octollama web panel. Next to it: the LiteLLM gateway, "
+           + "Ollama with models, the Open WebUI chat and a root daemon that applies system changes. "
+           + "The daemon opens no network port — it talks to the panel only through the state.json file.",
+      show:  [],
+      flows: []
+    },
+    {
+      title: "2. Control it from a browser — phone included",
+      text:  "Log in to the panel at master:5000. Starting and stopping services, pulling models, "
+           + "environment variables — all from one place, no SSH.",
+      show:  ["n-user", "p-user-panel"],
+      flows: [ {path:"p-user-panel", color:"var(--teal)", dur:2200, gap:900} ]
+    },
+    {
+      title: "3. Attach more hosts with AI modules",
+      text:  "Every extra computer becomes a slave: the panel generates a ready-to-run installer, "
+           + "you run it once — and the host joins the network. The master manages it over NFS "
+           + "(the orange dashed tentacles) while a local daemon carries out the orders.",
+      show:  ["n-user","n-s1","n-s2","n-s3","t-s1","t-s2","t-s3","lbl-more"],
+      stagger: ["n-s1","t-s1","n-s2","t-s2","n-s3","t-s3","lbl-more"],
+      flows: [
+        {path:"t-s1", color:"var(--amber)", dur:2600, gap:1400},
+        {path:"t-s2", color:"var(--amber)", dur:2600, gap:1400, delay:500},
+        {path:"t-s3", color:"var(--amber)", dur:2600, gap:1400, delay:1000}
+      ]
+    },
+    {
+      title: "4. One address — models from every host",
+      text:  "VS Code, Open WebUI and other apps connect to a single endpoint: the LiteLLM gateway on port 4000. "
+           + "It spreads requests across the hosts (load balancing) — the app never cares "
+           + "which machine actually computes the answer.",
+      show:  ["n-user","n-apps","n-s1","n-s2","n-s3","t-s1","t-s2","t-s3",
+              "p-app-litellm","d-master","d-s1","d-s2","d-s3","lbl-more"],
+      flows: [
+        {path:"p-app-litellm", color:"var(--teal)",   dur:1800, gap:700},
+        {path:"d-master",      color:"var(--purple)", dur:1400, gap:2100, delay:600},
+        {path:"d-s1",          color:"var(--purple)", dur:2200, gap:2100, delay:1300},
+        {path:"d-s2",          color:"var(--purple)", dur:2200, gap:2100, delay:2000},
+        {path:"d-s3",          color:"var(--purple)", dur:2200, gap:2100, delay:2700}
+      ]
+    },
+    {
+      title: "5. Power management: Wake-on-LAN",
+      text:  "A host you are not using can sleep and draw no power. When you need the extra muscle, "
+           + "wake it with one click from the panel (magic packet). The same tab can power off, "
+           + "restart or suspend any host.",
+      show:  ["n-user","n-s1","n-s2","n-s3","t-s1","t-s2","t-s3","p-user-panel","s2-zzz","lbl-more"],
+      sleep: "n-s2",
+      flows: [
+        {path:"p-user-panel", color:"var(--teal)",  dur:2000, gap:1600},
+        {path:"t-s2",         color:"var(--amber)", dur:1600, gap:1600, delay:700, wake:true}
+      ]
+    },
+    {
+      title: "6. A host goes down? Traffic keeps flowing",
+      text:  "When a host drops off the network, LiteLLM reroutes its requests to the remaining machines "
+           + "(fallback + cooldown) and automatically comes back once the host is alive again. "
+           + "Chat and VS Code will not even notice.",
+      show:  ["n-apps","n-s1","n-s2","n-s3","t-s1","t-s2","t-s3",
+              "p-app-litellm","d-master","d-s1","d-s2","s3-x","lbl-more"],
+      offline: "n-s3",
+      flows: [
+        {path:"p-app-litellm", color:"var(--teal)",   dur:1800, gap:700},
+        {path:"d-master",      color:"var(--purple)", dur:1400, gap:1500, delay:500},
+        {path:"d-s1",          color:"var(--purple)", dur:2200, gap:1500, delay:1000},
+        {path:"d-s2",          color:"var(--purple)", dur:2200, gap:1500, delay:1500}
+      ]
+    },
+    {
+      title: "7. Get it for free",
+      text:  "octollama is open source (GPL-3.0). Code, guide and installer are waiting on GitHub.",
+      show:  ["n-user","n-apps","n-s1","n-s2","n-s3","t-s1","t-s2","t-s3",
+              "p-user-panel","p-app-litellm","d-master","d-s1","d-s2","d-s3",
+              "lbl-more","cta"],
+      hideBubble: true,
+      flows: [
+        {path:"p-user-panel",  color:"var(--teal)",   dur:2200, gap:900},
+        {path:"p-app-litellm", color:"var(--teal)",   dur:1800, gap:700},
+        {path:"d-master",      color:"var(--purple)", dur:1400, gap:2100, delay:600},
+        {path:"d-s1",          color:"var(--purple)", dur:2200, gap:2100, delay:1300},
+        {path:"d-s2",          color:"var(--purple)", dur:2200, gap:2100, delay:2000},
+        {path:"d-s3",          color:"var(--purple)", dur:2200, gap:2100, delay:2700}
+      ]
+    }
+  ];
+
+  const AUTO_MS = 10000;                      // czas jednej sceny w trybie auto
+  const reduced = false; // celowo: to animowana prezentacja — ignorujemy systemowe „ogranicz ruch”
+
+  // CO: strona chmurki per scena (lewo/prawo od Mastera).
+  // DLACZEGO: dymek ucieka na wolną stronę — tam, gdzie w danej scenie
+  //     nie biegnie akurat ścieżka z pakietami (user po lewej, apki po prawej).
+  const SIDES = ["right","right","right","left","right","left","right"];
+  const BUBBLE_POS = { left:{x:58,y:190}, right:{x:806,y:190} };
+
+  const svg       = document.querySelector("#stage svg");
+  const packetsG  = document.getElementById("packets");
+  const bubble    = document.getElementById("bubble");
+  const tailLeft  = document.getElementById("tail-left");
+  const tailRight = document.getElementById("tail-right");
+  const titleEl   = document.getElementById("bubble-title");
+  const textEl    = document.getElementById("bubble-text");
+
+  // wszystkie elementy sterowane scenami
+  const CONTROLLED = ["n-user","n-apps","n-s1","n-s2","n-s3","lbl-more","s2-zzz","s3-x","cta",
+                      "p-user-panel","p-app-litellm",
+                      "t-s1","t-s2","t-s3","d-master","d-s1","d-s2","d-s3"];
+
+  let current = 0;
+  let rafId = null;
+  let activeFlows = [];   // {pathEl, len, color, dur, gap, delay, wakeDone}
+  let startTs = 0;
+
+  // ---------- silnik pakietów ----------
+  // CO: rysuje kółka wędrujące po ścieżkach SVG (getPointAtLength).
+  // DLACZEGO rAF zamiast SMIL/CSS: pełna kontrola nad pętlą, opóźnieniami
+  //     i sprzątaniem przy zmianie sceny; działa wszędzie tak samo.
+  function clearPackets(){
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    activeFlows = [];
+    packetsG.innerHTML = "";
+  }
+
+  function setupFlows(scene){
+    clearPackets();
+    if (reduced) return;                      // szanujemy reduced motion
+    activeFlows = (scene.flows || []).map(f => {
+      const pathEl = document.getElementById(f.path);
+      const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      dot.setAttribute("r", "6");
+      dot.setAttribute("fill", f.color);
+      dot.setAttribute("opacity", "0");
+      dot.style.filter = "drop-shadow(0 0 6px " + f.color + ")";
+      packetsG.appendChild(dot);
+      return { ...f, pathEl, dot, len: pathEl.getTotalLength(), delay: f.delay || 0 };
+    });
+    startTs = performance.now();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function tick(now){
+    const t = now - startTs;
+    for (const fl of activeFlows){
+      const local = t - fl.delay;
+      if (local < 0){ fl.dot.setAttribute("opacity","0"); continue; }
+      const cycle = fl.dur + fl.gap;
+      const phase = local % cycle;
+      if (phase > fl.dur){ fl.dot.setAttribute("opacity","0"); continue; }
+      const p = fl.pathEl.getPointAtLength((phase / fl.dur) * fl.len);
+      fl.dot.setAttribute("cx", p.x);
+      fl.dot.setAttribute("cy", p.y);
+      fl.dot.setAttribute("opacity","1");
+      // efekt WoL: po pierwszym magic packecie host się budzi
+      if (fl.wake && !fl.wakeDone && local > fl.dur){
+        fl.wakeDone = true;
+        const host = document.getElementById("n-s2");
+        host.classList.remove("dim");
+        document.getElementById("s2-zzz").classList.remove("shown");
+      }
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  // ---------- przełączanie scen ----------
+  let swapTimer = null;
+  function goTo(i){
+    current = (i + SCENES.length) % SCENES.length;
+    const sc = SCENES[current];
+
+    // CO: przenikanie scen — najpierw wygaszamy chmurkę i pakiety,
+    //     dopiero po chwili podmieniamy treść i wpuszczamy nową scenę.
+    // DLACZEGO: bez tej pauzy tekst i pakiety skakały bez ostrzeżenia.
+    clearTimeout(swapTimer);
+    svg.style.opacity = "0";
+    swapTimer = setTimeout(() => {
+      applyScene(sc);
+      svg.style.opacity = "1";
+    }, 1000);
+  }
+
+  function applyScene(sc){
+    titleEl.textContent = sc.title;
+    textEl.textContent  = sc.text;
+
+    // pozycja chmurki: na wysokości Mastera, po wolnej stronie sceny
+    // (w finale chmurka znika — jej rolę przejmuje wizytówka projektu)
+    const side = SIDES[current] || "right";
+    const pos  = BUBBLE_POS[side];
+    bubble.setAttribute("transform", `translate(${pos.x},${pos.y})`);
+    // ogonek zawsze celuje w Mastera: lewa chmurka -> ogonek w prawo
+    tailRight.style.display = (side === "left")  ? "" : "none";
+    tailLeft.style.display  = (side === "right") ? "" : "none";
+
+    // widoczność elementów
+    for (const id of CONTROLLED){
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.classList.remove("dim","offline");
+      const visible = sc.show.includes(id);
+      // pojawianie sekwencyjne (scena 3) — DLACZEGO: podkreśla,
+      // że hosty dokłada się jeden po drugim, nie hurtem
+      if (visible && sc.stagger && sc.stagger.includes(id) && !reduced){
+        el.classList.remove("shown");
+        const order = sc.stagger.indexOf(id);
+        setTimeout(() => el.classList.add("shown"), 350 * order);
+      } else {
+        el.classList.toggle("shown", visible);
+      }
+    }
+    if (sc.sleep)   document.getElementById(sc.sleep).classList.add("dim");
+    if (sc.offline) document.getElementById(sc.offline).classList.add("offline","dim");
+
+    // chmurka i pakiety wracają dopiero z gotową sceną
+    bubble.style.opacity = sc.hideBubble ? "0" : "1";
+    packetsG.style.opacity = "1";
+    setupFlows(sc);
+  }
+
+  // ---------- pętla bez końca ----------
+  // CO: sceny przełączają się same, goTo zapętla się przez modulo.
+  // DLACZEGO bez przycisków: ta wersja jest pod kiosk/nagranie —
+  //     odpala się i leci w kółko, zero interakcji.
+  goTo(0);
+  setInterval(() => goTo(current + 1), AUTO_MS);
+})();
+</script>
+</body>
+</html>
