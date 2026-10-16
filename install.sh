@@ -247,9 +247,10 @@ cp "$SCRIPT_DIR/VERSION" "$INSTALLED_VERSION_FILE"
 cp -r "$WEB_SRC/templates/." "$WEB_DIR/templates/"
 cp -r "$WEB_SRC/static/." "$WEB_DIR/static/"
 cp -r "$WEB_SRC/lang/." "$WEB_DIR/lang/"
-# WHY: hosts.json is user config (the list of Ollama hosts) - don't overwrite
-# it on a re-run of the installer if the user has already customized it.
-[ -f "$WEB_DIR/hosts.json" ] || cp "$WEB_SRC/hosts.json" "$WEB_DIR/"
+# WHY: hosts.json (the list of Ollama hosts) is user config and is NOT in the
+# repo (.gitignore) - the panel creates it with the master entry on first read
+# (web/hosts_store.py, wczytaj_hosty). Copying it from the source tree failed
+# on every fresh clone, so the installer never touches it.
 [ -d "$WEB_DIR/.venv" ] || python3 -m venv "$WEB_DIR/.venv"
 "$WEB_DIR/.venv/bin/pip" install -q -r "$WEB_DIR/requirements.txt"
 
