@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% block tresc %}
-  {% if odswiezaj %}
-    <meta http-equiv="refresh" content="2">
-  {% endif %}
-
   <h2>{{ _("Modele") }} — {{ host.nazwa }}{{ " (master)" if host.get("master") }}</h2>
   <p><small>{{ host.adres }}</small></p>
 
@@ -32,19 +28,55 @@
   </table>
 
   {% if pobrania %}
-    <fieldset>
+    <fieldset id="pobrania">
       <legend>{{ _("Pobieranie w toku") }}</legend>
-      {% for model, p in pobrania.items() %}
-        <p>
-          <strong>{{ model }}</strong> — {{ _(p.status) }}
-          {% if p.procent is not none %}({{ p.procent }}%){% endif %}
-          {% if p.blad %}<br><span class="pill blad">{{ p.blad }}</span>{% endif %}
-        </p>
-      {% endfor %}
-      {% if not odswiezaj %}
-        <p><a href="{{ request.full_path }}">{{ _("Odśwież postęp") }}</a></p>
-      {% endif %}
+      <div id="pobrania-lista">
+        {% for model, p in pobrania.items() %}
+          <p>
+            <strong>{{ model }}</strong> — {{ _(p.status) }}
+            {% if p.procent is not none %}({{ p.procent }}%){% endif %}
+            {% if p.blad %}<br><span class="pill blad">{{ p.blad }}</span>{% endif %}
+          </p>
+        {% endfor %}
+      </div>
+      <noscript><p><a href="{{ request.full_path }}">{{ _("Odśwież postęp") }}</a></p></noscript>
     </fieldset>
+    {% if pobrania.values() | rejectattr("gotowe") | list %}
+      <script>
+        // WHY: odpytujemy SAM postęp (JSON), zamiast przeładowywać stronę co 2 s -
+        //      przeładowanie z otwartą wyszukiwarką pytałoby za każdym razem
+        //      ollama.com i Hugging Face. Pełne przeładowanie dopiero, gdy wszystko
+        //      się skończy, żeby nowy model pojawił się na liście zainstalowanych.
+        (function () {
+          var lista = document.getElementById("pobrania-lista");
+          function odswiez() {
+            fetch("{{ url_for('modele_postep', nazwa=host.nazwa) }}", {credentials: "same-origin"})
+              .then(function (r) { return r.json(); })
+              .then(function (dane) {
+                var trwa = false;
+                lista.replaceChildren();
+                Object.keys(dane).forEach(function (model) {
+                  var p = dane[model], akapit = document.createElement("p"), nazwa = document.createElement("strong");
+                  nazwa.textContent = model;
+                  akapit.append(nazwa, " — " + p.status + (p.procent !== null ? " (" + p.procent + "%)" : ""));
+                  if (p.blad) {
+                    var blad = document.createElement("span");
+                    blad.className = "pill blad";
+                    blad.textContent = p.blad;
+                    akapit.append(document.createElement("br"), blad);
+                  }
+                  if (!p.gotowe) trwa = true;
+                  lista.append(akapit);
+                });
+                if (trwa) setTimeout(odswiez, 2000);
+                else location.reload();
+              })
+              .catch(function () { setTimeout(odswiez, 5000); });
+          }
+          setTimeout(odswiez, 2000);
+        })();
+      </script>
+    {% endif %}
   {% endif %}
 
   <fieldset>
@@ -109,6 +141,9 @@
               <td>
                 <form method="post" action="{{ url_for('modele_pobierz', nazwa=host.nazwa) }}" class="inline">
                   <input type="hidden" name="model" value="{{ nazwa_pull }}">
+                  <input type="hidden" name="q" value="{{ zapytanie }}">
+                  <input type="hidden" name="zrodlo" value="{{ wybrany[0] }}">
+                  <input type="hidden" name="id" value="{{ wybrany[1] }}">
                   <button type="submit" class="primary">{{ _("Pobierz") }}</button>
                 </form>
               </td>

@@ -754,15 +754,23 @@ def modele_widok(nazwa):
         zaladowane=zaladowane,
         zrodlo_modelu=katalog_modeli.zrodlo_modelu,
         pobrania=pobierania.stan_hosta(nazwa),
-        # WHY: auto-odświeżanie co 2 s przy otwartej wyszukiwarce odpytywałoby
-        #      ollama.com/HF w kółko - wtedy postęp odświeża się ręcznie.
-        odswiezaj=pobierania.aktywne(nazwa) and not (zapytanie or model_id),
         zapytanie=zapytanie,
         wyniki=wyniki,
         bledy=bledy,
         wybrany=(zrodlo, model_id),
         warianty=warianty,
     )
+
+
+@app.route("/modele/<nazwa>/postep")
+@login_required
+def modele_postep(nazwa):
+    # WHAT: sam postęp pobierania jako JSON - odpytywany przez modele.html co 2 s,
+    #       żeby nie przeładowywać całej strony (razem z wyszukiwarką).
+    return {
+        model: {"status": _(p["status"]), "procent": p["procent"], "blad": p["blad"], "gotowe": p["gotowe"]}
+        for model, p in pobierania.stan_hosta(nazwa).items()
+    }
 
 
 @app.route("/modele/<nazwa>/usun", methods=["POST"])
@@ -785,7 +793,10 @@ def modele_pobierz(nazwa):
     model = request.form.get("model", "").strip()
     if klient and model:
         pobierania.rozpocznij(nazwa, model, klient)
-    return redirect(url_for("modele_widok", nazwa=nazwa))
+    # WHY: pobranie z wyników wyszukiwania wraca do tych samych wyników i
+    #      wariantów - można od razu dobrać kolejny model albo inny host.
+    powrot = {k: request.form[k] for k in ("q", "zrodlo", "id") if request.form.get(k)}
+    return redirect(url_for("modele_widok", nazwa=nazwa, **powrot))
 
 
 if __name__ == "__main__":

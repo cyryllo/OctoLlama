@@ -2,7 +2,7 @@
 Flask, więc bez potrzeby na Redis/bazę). `/api/pull` strumieniuje minuty do
 godzin dla dużych modeli — request HTTP nie może na to czekać, więc pobieranie
 leci w osobnym wątku, a strona odpytuje ten moduł o postęp (patrz modele.html,
-`<meta http-equiv="refresh">` kiedy coś jeszcze trwa).
+skrypt odpytujący /modele/<nazwa>/postep, kiedy coś jeszcze trwa).
 """
 
 import threading
@@ -66,9 +66,3 @@ def stan_hosta(nazwa_hosta):
         _wyczysc_stare()
         return {model: dict(v) for (h, model), v in _stan.items() if h == nazwa_hosta}
 
-
-def aktywne(nazwa_hosta):
-    # WHY: stan_hosta() wyżej już wyczyścił wpisy starsze niż CZAS_ZNIKANIA_S,
-    # więc cokolwiek zostało - trwające pobieranie albo świeżo zakończone -
-    # ma prawo utrzymać auto-odświeżanie strony (patrz modele.html).
-    return bool(stan_hosta(nazwa_hosta))
