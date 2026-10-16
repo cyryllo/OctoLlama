@@ -64,7 +64,10 @@ Controls Ollama on the management host:
 - environment variables affecting performance (context size, VRAM,
   Vulkan/iGPU, KV cache, network availability),
 - a link to model management (list, sizes, what's currently loaded in
-  memory, pulling with a progress bar, deleting).
+  memory, pulling with a progress bar, deleting),
+- the installed Ollama version with **Check for updates** — if a newer one
+  is out, **Update** has the daemon run the official ollama.com installer
+  (the service restarts briefly; your autostart/stopped choice is kept).
 
 ### Slave
 Adding and removing remote hosts:
@@ -77,8 +80,8 @@ Adding and removing remote hosts:
    sets up its daemon.
 4. From then on the host shows up in the panel with its own icon-button row
    (hover each for a label): its own "Ollama settings" page — the exact same
-   start/stop/autostart/environment-variable controls as the Master tab,
-   just for that host — plus model management, re-downloading the
+   start/stop/autostart/environment-variable controls and Ollama updates
+   as the Master tab, just for that host — plus model management, re-downloading the
    installer, and removing it.
 
 This is also where **power management** lives: Wake-on-LAN (wake up a
@@ -91,7 +94,13 @@ compute, and suspend it again from the same tab once you're done.
 ### LLM
 Controls the LiteLLM aggregator:
 
-- start / stop the aggregator,
+- start / stop the aggregator, check for and install LiteLLM updates,
+- **Require an API key** — off by default (anyone on your network can use
+  the models). When on, a random key is generated once, shown with a Copy
+  button, and passed automatically to the Continue config and Open WebUI;
+  other clients send it as `Authorization: Bearer <key>`. LiteLLM 1.105+
+  refuses to start without either a key or an explicit "no key" setting —
+  the panel writes one of the two, so both modes work on new and old versions,
 - choose **which models from which hosts** get exposed under the shared
   address (port 4000, OpenAI-compatible API),
 - generate a **Continue.dev** config for VS Code from the currently exposed
@@ -156,8 +165,11 @@ doesn't touch the running LiteLLM service, so saving it doesn't restart
 anything.
 
 ### WebUI
-Start / stop **Open WebUI** — the browser chat. It's wired to LiteLLM, so it
-sees exactly the models you picked in the LLM tab — from every host at once.
+Start / stop **Open WebUI** — the browser chat — and check for/install its
+updates. It's wired to LiteLLM, so it sees exactly the models you picked in
+the LLM tab — from every host at once. When the LiteLLM API key is turned
+on or changed, the panel updates Open WebUI's LiteLLM connection by itself
+(other connections you added in the Open WebUI Admin Panel stay as they are).
 
 ---
 
@@ -206,5 +218,7 @@ change concerns).
 - NFS exports are restricted per host IP address.
 - The panel has no TLS — if you want HTTPS, put a reverse proxy in front of
   it (e.g. Nginx Proxy Manager). That's a deliberate design decision.
+- LiteLLM (port 4000) has no password unless you turn on **Require an API
+  key** in the LLM tab.
 - OctoLlama is meant for a **home / trusted network** — don't expose port
   5000 or 4000 directly to the internet.

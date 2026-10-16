@@ -29,6 +29,12 @@ DOMYSLNE = {
     "context_window_fallbacks": {},
     "priorytet": {},
     "role_modele": {},
+    # WHY: klucz API (master key) LiteLLM - opcja, nie przymus: w domowej sieci
+    # część ludzi go nie chce, w obcej sieci się przydaje (ten sam wybór co w
+    # Ollama Managerze). Klucz losowany RAZ przy włączeniu i trzymany tutaj,
+    # żeby restart usługi nie zrywał połączenia Continue/Open WebUI.
+    "wymagaj_klucza": False,
+    "klucz": "",
 }
 
 STRATEGIE_ROUTINGU = (

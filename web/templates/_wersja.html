@@ -1,0 +1,46 @@
+{#
+  Wiersz "Wersja" usługi (Ollama / LiteLLM / Open WebUI) - zainstalowana
+  wersja, przycisk "Sprawdź aktualizacje" i - gdy jest nowsza - "Aktualizuj".
+  info: aktualizacje.informacja() (+ dla Ollamy "trwa" i "demon_stary").
+  url_akcji/akcja: formularz, który zleca aktualizację tej usługi.
+#}
+{% macro wiersz_wersji(info, url_akcji, akcja, opis_aktualizacji) %}
+  {% set trwa = info.trwa or (info.zadanie and info.zadanie.trwa) %}
+  {% if info.lokalna or info.demon_stary or trwa or info.zadanie %}
+  <div class="wiersz-wersji">
+    <small>
+      {{ _("Wersja") }}: <strong>{{ info.lokalna or "?" }}</strong>
+      {% if trwa %}
+        — <span class="pill">{{ _("aktualizacja w toku…") }}</span>
+      {% elif info.dostepna %}
+        — <span class="pill blad">{{ _("dostępna {wersja}").format(wersja=info.najnowsza) }}</span>
+      {% elif info.najnowsza %}
+        — <span class="pill ok">{{ _("najnowsza") }}</span>
+      {% endif %}
+    </small>
+    {% if info.demon_stary %}
+      <small>{{ _("Demon na tym hoście nie raportuje wersji — uruchom ponownie instalator OctoLlama na tym hoście, żeby aktualizować Ollamę z panelu.") }}</small>
+    {% elif not trwa and info.lokalna %}
+      <form method="post" action="{{ url_for('aktualizacje_sprawdz') }}" class="inline">
+        <input type="hidden" name="usluga" value="{{ info.usluga }}">
+        <input type="hidden" name="powrot" value="{{ request.path }}">
+        <button type="submit">{{ _("Sprawdź aktualizacje") }}</button>
+      </form>
+      {% if info.dostepna %}
+        <form method="post" action="{{ url_akcji }}" class="inline"
+              onsubmit='return confirm({{ opis_aktualizacji | tojson }})'>
+          <input type="hidden" name="akcja" value="{{ akcja }}">
+          <button type="submit" class="primary">{{ _("Aktualizuj do {wersja}").format(wersja=info.najnowsza) }}</button>
+        </form>
+      {% endif %}
+    {% endif %}
+    {% if info.zadanie and not info.zadanie.trwa %}
+      {% if info.zadanie.blad %}
+        <span class="pill blad">{{ _("Aktualizacja nie powiodła się") }}: {{ info.zadanie.blad }}</span>
+      {% else %}
+        <span class="pill ok">{{ _("Zaktualizowano.") }}</span>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+{% endmacro %}

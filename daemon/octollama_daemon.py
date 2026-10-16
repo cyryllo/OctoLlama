@@ -10,6 +10,7 @@ tego procesu ze światem to plik na dysku — zero portu/API sieciowego.
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -82,14 +83,50 @@ def ollama_zainstaluj():
     # żadnego graficznego promptu.
     r = subprocess.run(
         ["sh", "-c", "curl -fsSL https://ollama.com/install.sh | sh"],
-        capture_output=True, text=True, timeout=None,
+        capture_output=True, text=True, timeout=None, env=_env_z_home(),
     )
     if r.returncode != 0:
         raise RuntimeError(r.stderr.strip() or "instalacja Ollamy: nieznany błąd")
 
 
+def _env_z_home():
+    # WHY: usługa systemd nie ma $HOME, a CLI Ollamy bez niego kończy się
+    # "panic: $HOME is not defined" (sprawdzone na 0.33.2 w kontenerze z systemd).
+    return {**os.environ, "HOME": os.environ.get("HOME") or "/root"}
+
+
+def ollama_wersja():
+    # WHY: 'ollama --version' drukuje "ollama version is X" albo, gdy usługa
+    # nie działa, ostrzeżenie + "client version is X" - bierzemy sam numer.
+    try:
+        r = subprocess.run(
+            ["ollama", "--version"], capture_output=True, text=True, timeout=5, env=_env_z_home()
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    dopasowanie = re.search(r"(\d+\.\d+\.\d+)", r.stdout + r.stderr)
+    return dopasowanie.group(1) if dopasowanie else None
+
+
+def _wczytaj_wykonana_aktualizacje():
+    try:
+        return json.loads(STATUS_PATH.read_text()).get("ollama", {}).get("aktualizacja")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+
+
+# WHY: aktualizacja to jednorazowa AKCJA, nie stan docelowy - panel wpisuje do
+# state.json znacznik zlecenia (czas kliknięcia), a demon pamięta ostatni
+# wykonany i raportuje go w status.json. Inny znacznik = nowe zlecenie. Start
+# z wartością z poprzedniego status.json, żeby restart demona nie powtarzał
+# aktualizacji.
+_wykonana_aktualizacja = None
+
+
 def stan_aktualny():
     return {
+        "wersja": ollama_wersja() if ollama_zainstalowana() else None,
+        "aktualizacja": _wykonana_aktualizacja,
         "zainstalowana": ollama_zainstalowana(),
         "service_running": systemctl_query("is-active") == "active",
         "service_enabled": systemctl_query("is-enabled") == "enabled",
@@ -114,9 +151,30 @@ def zapisz_override(env):
 
 
 def zastosuj(docelowy, obecny, zmiany):
+    global _wykonana_aktualizacja
+    zainstalowano = False
     if docelowy.get("zainstaluj_ollama") and not obecny.get("zainstalowana"):
         ollama_zainstaluj()
         zmiany.append("Ollama: zainstalowano")
+        zainstalowano = True
+
+    zlecona = docelowy.get("aktualizacja")
+    if zlecona and zlecona != _wykonana_aktualizacja and obecny.get("zainstalowana"):
+        # WHY: znacznik zapisujemy PRZED instalacją - nieudana aktualizacja nie
+        # może się powtarzać przy każdej kolejnej zmianie stanu (błąd i tak
+        # trafi do status.json); ponowna próba to nowe kliknięcie w panelu.
+        _wykonana_aktualizacja = zlecona
+        poprzednia = obecny.get("wersja")
+        # WHY: oficjalny skrypt z ollama.com aktualizuje istniejącą instalację w miejscu.
+        ollama_zainstaluj()
+        zmiany.append(f"Ollama: zaktualizowano {poprzednia} -> {ollama_wersja()}")
+        zainstalowano = True
+
+    if zainstalowano:
+        # WHY: skrypt instalacyjny sam robi `systemctl enable` + restart usługi -
+        # mierzymy stan od nowa, żeby reszta tej funkcji przywróciła to, co user
+        # ustawił w panelu (np. wyłączony autostart albo zatrzymaną usługę).
+        obecny = stan_aktualny()
 
     env_docelowy = docelowy.get("env", {})
     env_obecny = obecny.get("env", {})
@@ -302,6 +360,8 @@ class StateHandler(FileSystemEventHandler):
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+    global _wykonana_aktualizacja
+    _wykonana_aktualizacja = _wczytaj_wykonana_aktualizacje()
     przetworz()  # zastosuj stan już obecny w state.json przy starcie demona
 
     observer = Observer()

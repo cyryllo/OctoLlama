@@ -59,7 +59,10 @@ Sterowanie Ollamą na hoście zarządzającym:
 - zmienne środowiskowe wpływające na wydajność (rozmiar kontekstu, VRAM,
   Vulkan/iGPU, cache KV, dostępność w sieci),
 - przejście do zarządzania modelami (lista, rozmiary, co jest załadowane
-  w pamięci, pobieranie z paskiem postępu, usuwanie).
+  w pamięci, pobieranie z paskiem postępu, usuwanie),
+- zainstalowana wersja Ollamy i **Sprawdź aktualizacje** — gdy jest nowsza,
+  **Aktualizuj** każe demonowi uruchomić oficjalny instalator z ollama.com
+  (usługa na chwilę się zrestartuje; Twój wybór autostartu/zatrzymania zostaje).
 
 ### Slave
 Dodawanie i zdejmowanie zdalnych hostów:
@@ -71,8 +74,8 @@ Dodawanie i zdejmowanie zdalnych hostów:
    ponownie, jeśli eksport na masterze jeszcze nie gotowy) i postawi demona.
 4. Od tej chwili host pojawia się w panelu z rzędem ikon (podpowiedź po
    najechaniu): własna strona „Ustawienia Ollamy” — dokładnie te same opcje
-   start/stop/autostart/zmienne środowiskowe co w Masterze, tylko dla tego
-   hosta — a także zarządzanie modelami, ponowne pobranie instalatora i
+   start/stop/autostart/zmienne środowiskowe i aktualizacje Ollamy co
+   w Masterze, tylko dla tego hosta — a także zarządzanie modelami, ponowne pobranie instalatora i
    usunięcie hosta.
 
 Tu też jest **zarządzanie zasilaniem**: Wake-on-LAN (obudzenie uśpionego
@@ -85,7 +88,13 @@ dodatkowej mocy, a po pracy usypiasz z tej samej zakładki.
 ### LLM
 Sterowanie agregatorem LiteLLM:
 
-- start / stop agregatora,
+- start / stop agregatora, sprawdzanie i instalowanie aktualizacji LiteLLM,
+- **Wymagaj klucza API** — domyślnie wyłączone (każdy w Twojej sieci może
+  korzystać z modeli). Po włączeniu panel raz losuje klucz, pokazuje go
+  z przyciskiem Kopiuj i sam przekazuje do configu Continue i Open WebUI;
+  inne aplikacje podają go jako `Authorization: Bearer <klucz>`. LiteLLM 1.105+
+  nie wystartuje bez klucza albo jawnego ustawienia „bez klucza” — panel
+  zapisuje jedno z dwóch, więc oba tryby działają na nowych i starych wersjach,
 - wybór, **które modele z których hostów** są wystawione pod wspólnym adresem
   (port 4000, API zgodne z OpenAI),
 - generowanie konfiguracji **Continue.dev** dla VS Code z aktualnie wystawionych
@@ -145,9 +154,12 @@ porównać). To zmienia tylko generowany config Continue niżej — nie dotyka
 działającej usługi LiteLLM, więc zapis nie wywołuje restartu.
 
 ### WebUI
-Start / stop **Open WebUI** — czatu w przeglądarce. Jest podpięty pod LiteLLM,
-więc widzi dokładnie te modele, które wybrałeś w zakładce LLM — ze wszystkich
-hostów naraz.
+Start / stop **Open WebUI** — czatu w przeglądarce — oraz sprawdzanie
+i instalowanie jego aktualizacji. Jest podpięty pod LiteLLM, więc widzi
+dokładnie te modele, które wybrałeś w zakładce LLM — ze wszystkich hostów
+naraz. Po włączeniu albo zmianie klucza API LiteLLM panel sam poprawia
+połączenie Open WebUI z LiteLLM (inne połączenia dodane w Panelu administratora
+Open WebUI zostają bez zmian).
 
 ---
 
@@ -193,5 +205,7 @@ polecenia z panelu czekają w `state.json` do jego uruchomienia. Sprawdź:
 - Eksporty NFS są ograniczone per adres IP hosta.
 - Panel nie ma TLS — jeśli chcesz HTTPS, postaw przed nim reverse proxy
   (np. Nginx Proxy Manager). To świadoma decyzja projektowa.
+- LiteLLM (port 4000) nie ma hasła, dopóki nie włączysz **Wymagaj klucza API**
+  w zakładce LLM.
 - OctoLlama jest przeznaczona do **sieci domowej / zaufanej** — nie wystawiaj
   portu 5000 ani 4000 bezpośrednio do internetu.

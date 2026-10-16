@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block tresc %}
+  {% from "_wersja.html" import wiersz_wersji with context %}
+  {% if odswiezaj %}
+    <meta http-equiv="refresh" content="3">
+  {% endif %}
   <h2>Open WebUI</h2>
   <p>
     <small>{{ _("Podpięte pod LiteLLM (nie pod pojedynczy host) — widzi dokładnie modele wybrane w zakładce") }} <a href="{{ url_for('llm_widok') }}">LLM</a>, {{ _("ze wszystkich hostów naraz.") }}</small>
@@ -40,6 +44,10 @@
           </span>
         </div>
       </div>
+    {{ wiersz_wersji(wersja, url_for('webui_usluga'), "aktualizuj", _("Zaktualizować Open WebUI? Może to potrwać kilka minut; działająca usługa zostanie potem zrestartowana.")) }}
+      {% if klucz %}
+        <p><small>{{ _("LiteLLM wymaga klucza API — panel sam wpisuje go do połączenia Open WebUI z LiteLLM, także po zmianie klucza.") }}</small></p>
+      {% endif %}
     {% endif %}
   </fieldset>
 {% endblock %}

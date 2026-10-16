@@ -273,6 +273,22 @@ th {
 tr:last-child td { border-bottom: none; }
 table button { margin: 0; }
 
+.wiersz-wersji {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+}
+.wiersz-wersji small { margin: 0; }
+.wiersz-klucza {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.wiersz-klucza input { flex: 1 1 22rem; font-family: ui-monospace, monospace; margin: 0; }
+
 .wiersz-status-uslugi {
   display: flex;
   align-items: center;

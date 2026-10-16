@@ -30,6 +30,7 @@ from pathlib import Path
 import requests
 from flask import Flask, Response, flash, redirect, render_template, request, session, url_for
 
+import aktualizacje
 import hosts_store
 import i18n
 import install_generator
@@ -179,18 +180,34 @@ def index():
 # =============================================================================
 #  Master — usługa Ollama na TYM hoście + status wszystkich podłączonych
 # =============================================================================
+def _wersja_ollamy(stan, status):
+    # WHAT: wiersz "Wersja" usługi Ollama dla mastera i slave'a - wersja
+    #       zmierzona przez demona (status.json), stan zleconej aktualizacji.
+    ollama_status = (status or {}).get("ollama", {})
+    info = aktualizacje.informacja("ollama", ollama_status.get("wersja"))
+    zlecona = stan["ollama"].get("aktualizacja")
+    # WHY: demon sprzed tej funkcji nie raportuje wersji - nie zrozumie też
+    #      zlecenia aktualizacji, więc nie pokazujemy przycisku, tylko podpowiedź.
+    info["demon_stary"] = bool(status) and "wersja" not in ollama_status
+    info["trwa"] = bool(zlecona) and bool(status) and not info["demon_stary"] \
+        and ollama_status.get("aktualizacja") != zlecona
+    return info
+
+
 @app.route("/master")
 @login_required
 def master_widok():
     stan = wczytaj_stan()
     status = wczytaj_status()
-    odswiezaj = czy_odswiezac("master", status)
+    wersja = _wersja_ollamy(stan, status)
+    odswiezaj = czy_odswiezac("master", status) or wersja["trwa"]
 
     return render_template(
         "master.html",
         ollama=stan["ollama"],
         status=status,
         odswiezaj=odswiezaj,
+        wersja=wersja,
     )
 
 
@@ -245,6 +262,10 @@ def _zastosuj_akcje_ollama(stan, akcja, form):
             env["OLLAMA_HOST"] = "0.0.0.0:11434"
         else:
             env.pop("OLLAMA_HOST", None)
+    elif akcja == "aktualizuj_ollama":
+        # WHY: znacznik zlecenia, nie flaga - demon porównuje go z ostatnio
+        # wykonanym (patrz daemon/octollama_daemon.py, _wykonana_aktualizacja).
+        stan["ollama"]["aktualizacja"] = datetime.now(timezone.utc).isoformat()
     elif akcja == "start":
         stan["ollama"]["service_running"] = True
     elif akcja == "stop":
@@ -290,13 +311,15 @@ def slave_ollama_widok(nazwa):
         return redirect(url_for("slave_widok"))
     stan = hosts_store.wczytaj_stan_hosta(nazwa)
     status = hosts_store.wczytaj_status_hosta(nazwa)
-    odswiezaj = czy_odswiezac(nazwa, status)
+    wersja = _wersja_ollamy(stan, status)
+    odswiezaj = czy_odswiezac(nazwa, status) or wersja["trwa"]
     return render_template(
         "slave_ollama.html",
         host=host,
         ollama=stan["ollama"],
         status=status,
         odswiezaj=odswiezaj,
+        wersja=wersja,
     )
 
 
@@ -451,7 +474,12 @@ def llm_widok():
         "zainstalowane": litellm.zainstalowane(),
         "dziala": litellm.dziala(),
         "autostart": litellm.autostart_wlaczony(),
+        "klucz": litellm.klucz(),
+        # WHY: adres, pod którym klienci w LAN widzą LiteLLM - ten sam host co
+        #      panel, port LiteLLM (localhost z LITELLM_URL nic by im nie dał).
+        "adres": f"http://{request.host.rsplit(':', 1)[0]}:4000/v1",
     }
+    wersja = aktualizacje.informacja("litellm", litellm.wersja() if litellm_stan["zainstalowane"] else None)
 
     # WHY: zbalansowane/modele_wszystkie liczone z tych samych włączonych
     # checkboxów co siatka wyżej - fallback/priorytet/context-window w UI mają
@@ -481,6 +509,8 @@ def llm_widok():
     return render_template(
         "llm.html",
         litellm=litellm_stan,
+        wersja=wersja,
+        odswiezaj=bool(wersja["zadanie"] and wersja["zadanie"]["trwa"]),
         siatka=siatka,
         ustawienia=ustawienia,
         strategie=litellm_ustawienia.STRATEGIE_ROUTINGU,
@@ -512,6 +542,17 @@ def llm_usluga():
             litellm.autostart(True)
         elif akcja == "autostart_wylacz":
             litellm.autostart(False)
+        elif akcja == "aktualizuj":
+            aktualizacje.rozpocznij("litellm", litellm.aktualizuj, litellm.wersja)
+        elif akcja in ("klucz_wlacz", "klucz_wylacz", "klucz_nowy"):
+            litellm.ustaw_wymaganie_klucza(akcja != "klucz_wylacz", nowy=akcja == "klucz_nowy")
+            # WHY: tak jak zapis wyboru modeli - klucz ma działać od razu, więc
+            # restartujemy działające LiteLLM i przepinamy Open WebUI (łączy się
+            # przez LiteLLM i bez aktualnego klucza nie zobaczy modeli).
+            if litellm.dziala():
+                litellm.uruchom()
+            webui.zastosuj_klucz()
+            flash(_("Zapisano ustawienie klucza API. Zaktualizuj klucz w klientach (np. wygeneruj na nowo config Continue)."))
     except RuntimeError as e:
         flash(str(e))
 
@@ -681,7 +722,15 @@ def webui_widok():
         "dziala": webui.dziala(),
         "autostart": webui.autostart_wlaczony(),
     }
-    return render_template("webui.html", webui=webui_stan, webui_url=webui.WEBUI_URL)
+    wersja = aktualizacje.informacja("open-webui", webui.wersja() if webui_stan["zainstalowane"] else None)
+    return render_template(
+        "webui.html",
+        webui=webui_stan,
+        webui_url=webui.WEBUI_URL,
+        wersja=wersja,
+        klucz=litellm.klucz(),
+        odswiezaj=bool(wersja["zadanie"] and wersja["zadanie"]["trwa"]),
+    )
 
 
 @app.route("/webui/usluga", methods=["POST"])
@@ -701,10 +750,32 @@ def webui_usluga():
             webui.autostart(True)
         elif akcja == "autostart_wylacz":
             webui.autostart(False)
+        elif akcja == "aktualizuj":
+            aktualizacje.rozpocznij("open-webui", webui.aktualizuj, webui.wersja)
     except RuntimeError as e:
         flash(str(e))
 
     return redirect(url_for("webui_widok"))
+
+
+# =============================================================================
+#  Aktualizacje usług - "Sprawdź aktualizacje" przy Ollamie, LiteLLM i Open WebUI
+# =============================================================================
+@app.route("/aktualizacje/sprawdz", methods=["POST"])
+@login_required
+def aktualizacje_sprawdz():
+    usluga = request.form.get("usluga", "")
+    if usluga in aktualizacje.ZRODLA:
+        try:
+            aktualizacje.sprawdz_najnowsza(usluga)
+        except requests.RequestException as e:
+            flash(_("Nie udało się sprawdzić aktualizacji: {blad}").format(blad=e))
+    # WHY: powrót tylko na ścieżkę w obrębie panelu - nigdy pełny adres z
+    #      formularza (inaczej przekierowanie mogłoby wyprowadzić poza panel).
+    powrot = request.form.get("powrot", "")
+    if not powrot.startswith("/") or powrot.startswith("//"):
+        powrot = url_for("master_widok")
+    return redirect(powrot)
 
 
 # =============================================================================

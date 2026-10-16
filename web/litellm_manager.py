@@ -14,6 +14,8 @@ zainstalowane, żeby dodanie nowego modelu na hoście nie wystawiało go od razu
 na zewnątrz bez decyzji użytkownika.
 """
 
+import re
+import secrets
 import shutil
 import subprocess
 import time
@@ -98,6 +100,67 @@ def zainstaluj():
     )
     if wynik.returncode != 0:
         raise RuntimeError(wynik.stderr.strip() or _("uv tool install: nieznany błąd"))
+
+
+def wersja_uv(pakiet):
+    # WHAT: zainstalowana wersja narzędzia z 'uv tool list' ("litellm v1.2.3").
+    # WHY:  'uv tool list' rejestruje narzędzie pod nazwą samego pakietu, bez
+    #       dopisku extra ("[proxy]") - wspólne dla LiteLLM i Open WebUI.
+    uv = _uv_binarka()
+    if not uv:
+        return None
+    try:
+        r = subprocess.run([uv, "tool", "list"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    dopasowanie = re.search(rf"^{re.escape(pakiet)}\s+v?(\d+\.\d+\.\d+)", r.stdout, re.MULTILINE)
+    return dopasowanie.group(1) if dopasowanie else None
+
+
+def uv_aktualizuj(spec, opcje=()):
+    # WHAT: 'uv tool install <spec>@latest' - najnowsza wersja w miejscu starej.
+    # BUG naprawiony: 'uv tool upgrade' po cichu NIC nie robi, gdy narzędzie
+    #      zainstalowano z przypiętą wersją ("litellm[proxy]==1.104.3") - tylko
+    #      podpowiada '@latest' (sprawdzone na uv 0.13.1). '@latest' działa w
+    #      obu przypadkach i zdejmuje przypięcie; opcje instalacji (extra,
+    #      Python 3.11) podajemy jawnie, tak jak przy pierwszej instalacji.
+    uv = uv_zapewnij()
+    wynik = subprocess.run(
+        [uv, "tool", "install", *opcje, f"{spec}@latest"], capture_output=True, text=True, timeout=None
+    )
+    if wynik.returncode != 0:
+        raise RuntimeError(wynik.stderr.strip() or _("uv tool install: nieznany błąd"))
+
+
+def wersja():
+    return wersja_uv("litellm")
+
+
+def aktualizuj():
+    # WHAT: aktualizacja + restart, jeśli usługa działała - nowa wersja ma
+    #       od razu działać, a config i tak generujemy na nowo przy starcie.
+    dzialalo = dziala()
+    uv_aktualizuj("litellm[proxy]")
+    if dzialalo:
+        uruchom()
+
+
+def klucz(ustawienia=None):
+    # WHAT: klucz API LiteLLM, gdy włączona opcja "Wymagaj klucza API", inaczej None.
+    ustawienia = ustawienia or litellm_ustawienia.wczytaj_ustawienia()
+    if not ustawienia.get("wymagaj_klucza"):
+        return None
+    return ustawienia.get("klucz") or None
+
+
+def ustaw_wymaganie_klucza(wlacz, nowy=False):
+    # WHAT: zapisuje wybór; klucz losujemy tylko raz (albo na żądanie "nowy"),
+    #       żeby wyłączenie i ponowne włączenie nie zmieniało go klientom.
+    ustawienia = litellm_ustawienia.wczytaj_ustawienia()
+    ustawienia["wymagaj_klucza"] = bool(wlacz)
+    if wlacz and (nowy or not ustawienia.get("klucz")):
+        ustawienia["klucz"] = "sk-" + secrets.token_hex(24)
+    litellm_ustawienia.zapisz_ustawienia(ustawienia)
 
 
 def dziala():
@@ -265,6 +328,23 @@ def _zbuduj_config_dane(hosty, ustawienia):
     router.update(_zbuduj_router_settings(ustawienia))
     scalony["router_settings"] = router
 
+    # WHY: LiteLLM od ok. 1.105 (2026-10) ODMAWIA startu bez master key
+    # ("LiteLLM proxy refused to start: no master key is set") - na świeżej
+    # instalacji usługa padała od razu. Z kluczem: master_key, klienci muszą go
+    # podać; bez klucza: jawna zgoda na brak hasła (starsze wersje ignorują
+    # nieznane ustawienie). Oba klucze są NASZE - kasujemy je przed wpisaniem,
+    # żeby przełączenie opcji nie zostawiło starego; resztę general_settings
+    # dopisanych ręcznie przez usera zostawiamy w spokoju.
+    gs = dict(istniejacy.get("general_settings") or {})
+    gs.pop("master_key", None)
+    gs.pop("dangerously_permit_weak_or_unset_master_key", None)
+    klucz_api = klucz(ustawienia)
+    if klucz_api:
+        gs["master_key"] = klucz_api
+    else:
+        gs["dangerously_permit_weak_or_unset_master_key"] = True
+    scalony["general_settings"] = gs
+
     ls = dict(istniejacy.get("litellm_settings") or {})
     # WHY: kasujemy nasze klucze przed update - jeśli user wyłączył fallback
     # dla wszystkich modeli, _zbuduj_litellm_settings zwróci słownik bez
@@ -358,7 +438,9 @@ def zbuduj_config_continue(modele, capabilities=None, role_modele=None):
         linie.append("    provider: openai")
         linie.append(f"    model: {_yaml_str(model)}")
         linie.append(f"    apiBase: {LITELLM_URL}/v1")
-        linie.append("    apiKey: sk-anything")
+        # WHY: z włączonym kluczem LiteLLM odrzuci zapytanie bez niego; bez
+        #      klucza wystarczy dowolny niepusty tekst (Continue wymaga pola).
+        linie.append(f"    apiKey: {klucz() or 'sk-anything'}")
         linie.append("    roles:")
         for rola in role_dla_modelu(model, capabilities.get(model, ()), role_modele):
             linie.append(f"      - {rola}")

@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block tresc %}
+  {% from "_wersja.html" import wiersz_wersji with context %}
+  {% if odswiezaj %}
+    <meta http-equiv="refresh" content="3">
+  {% endif %}
   <h2>{{ _("LiteLLM (gateway)") }}</h2>
   <fieldset>
     <legend>{{ _("Usługa LiteLLM") }}</legend>
@@ -34,8 +38,54 @@
           </span>
         </div>
       </div>
+      {{ wiersz_wersji(wersja, url_for('llm_usluga'), "aktualizuj", _("Zaktualizować LiteLLM? Działająca usługa zostanie potem zrestartowana.")) }}
     {% endif %}
   </fieldset>
+
+  {% if litellm.zainstalowane %}
+    <fieldset>
+      <legend>{{ _("Dostęp do LiteLLM") }}</legend>
+      <p><small>{{ _("Adres dla klientów zgodnych z OpenAI (Continue, Open WebUI, inne aplikacje):") }}</small></p>
+      <p><code>{{ litellm.adres }}</code></p>
+      <form method="post" action="{{ url_for('llm_usluga') }}">
+        <input type="hidden" name="akcja" value="{{ 'klucz_wylacz' if litellm.klucz else 'klucz_wlacz' }}">
+        <label>
+          <input type="checkbox" onchange="this.form.submit()" {{ "checked" if litellm.klucz }}>
+          {{ _("Wymagaj klucza API (hasła)") }}
+        </label>
+        <noscript><button type="submit">{{ _("Zapisz") }}</button></noscript>
+      </form>
+      {% if litellm.klucz %}
+        <div class="wiersz-klucza">
+          <input type="text" id="klucz-api" value="{{ litellm.klucz }}" readonly onclick="this.select()">
+          <button type="button" onclick="kopiujKlucz(this)">{{ _("Kopiuj") }}</button>
+          <form method="post" action="{{ url_for('llm_usluga') }}" class="inline"
+                onsubmit='return confirm({{ _("Wygenerować nowy klucz? Stary przestanie działać — trzeba go będzie podmienić we wszystkich klientach.") | tojson }})'>
+            <input type="hidden" name="akcja" value="klucz_nowy">
+            <button type="submit">{{ _("Nowy klucz") }}</button>
+          </form>
+        </div>
+        <p><small>{{ _("Klienci muszą podać ten klucz (nagłówek Authorization: Bearer …). Config Continue i Open WebUI dostają go automatycznie.") }}</small></p>
+        <script>
+          // WHY: navigator.clipboard działa tylko na HTTPS albo localhost - panel
+          //      w LAN chodzi po zwykłym HTTP, więc awaryjnie zaznaczamy pole i
+          //      używamy starego execCommand("copy").
+          function kopiujKlucz(przycisk) {
+            var pole = document.getElementById("klucz-api");
+            var gotowe = function () { przycisk.textContent = {{ _("Skopiowano") | tojson }}; };
+            if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(pole.value).then(gotowe);
+            } else {
+              pole.select();
+              if (document.execCommand("copy")) gotowe();
+            }
+          }
+        </script>
+      {% else %}
+        <p><small>{{ _("Bez klucza każdy w Twojej sieci może korzystać z modeli przez LiteLLM (nasłuchuje na wszystkich interfejsach, port 4000).") }}</small></p>
+      {% endif %}
+    </fieldset>
+  {% endif %}
 
   <fieldset>
     <legend>{{ _("Modele wystawione przez agregator") }}</legend>

@@ -12,7 +12,9 @@ Usługa systemd --user, bez roota — ten sam wzorzec co LiteLLM
 (`litellm_manager.py`, przeniesiony z Ollama Managera).
 """
 
+import json
 import shutil
+import sqlite3
 import subprocess
 import time
 from pathlib import Path
@@ -20,6 +22,7 @@ from pathlib import Path
 import requests
 
 from i18n import przetlumacz as _
+import litellm_manager
 from litellm_manager import LITELLM_URL, uv_zapewnij
 
 WEBUI_URL = "http://localhost:8080"
@@ -95,7 +98,9 @@ def _zapisz_unit():
         "[Service]\n"
         f"ExecStart={bin_} serve\n"
         f"Environment=OPENAI_API_BASE_URL={LITELLM_URL}/v1\n"
-        "Environment=OPENAI_API_KEY=sk-anything\n"
+        # WHY: z włączonym kluczem API LiteLLM (zakładka LLM) WebUI musi go
+        #      podać, inaczej nie zobaczy żadnego modelu.
+        f"Environment=OPENAI_API_KEY={litellm_manager.klucz() or 'sk-anything'}\n"
         "Environment=ENABLE_OLLAMA_API=false\n"
         "Restart=on-failure\n"
         "\n"
@@ -133,3 +138,92 @@ def autostart(wlacz):
         _systemctl_user(["enable", "--now", "open-webui.service"])
     else:
         _systemctl_user(["disable", "--now", "open-webui.service"])
+
+
+def _czekaj_az_dziala():
+    # WHY: restart Open WebUI trwa kilkadziesiąt sekund (migracje bazy) -
+    #      bez czekania strona pokazałaby "zatrzymana" tuż po aktualizacji.
+    for _proba in range(180):
+        if dziala():
+            return
+        time.sleep(1)
+    raise RuntimeError(
+        _("WebUI nie odpowiedziało w ciągu 3 minut. Log usługi: journalctl --user -u open-webui -e")
+    )
+
+
+def wersja():
+    return litellm_manager.wersja_uv("open-webui")
+
+
+def aktualizuj():
+    # WHAT: aktualizacja + restart, jeśli usługa działała (jak litellm_manager.aktualizuj).
+    # UWAGA: baza Open WebUI (konta, czaty) leży w katalogu pakietu w środowisku
+    #        uv (open_webui/data/webui.db) - sprawdzone, że 'uv tool install
+    #        open-webui@latest' aktualizuje w miejscu i jej nie rusza.
+    dzialalo = dziala()
+    litellm_manager.uv_aktualizuj("open-webui", ("--python", "3.11"))
+    if dzialalo:
+        _systemctl_user(["restart", "open-webui.service"])
+        _czekaj_az_dziala()
+
+
+def _sciezka_bazy():
+    # WHY: bez DATA_DIR w unicie Open WebUI trzyma dane w katalogu pakietu
+    #      (open_webui/data) wewnątrz środowiska narzędzia uv.
+    bazy = sorted(
+        (Path.home() / ".local" / "share" / "uv" / "tools" / "open-webui").glob(
+            "lib/python*/site-packages/open_webui/data/webui.db"
+        )
+    )
+    return bazy[-1] if bazy else None
+
+
+def _ustaw_klucz_w_bazie(klucz_api):
+    # WHAT: podmienia klucz TYLKO przy połączeniu z LiteLLM w zapisanej
+    #       konfiguracji Open WebUI (tabela config: klucz -> wartość JSON).
+    # BUG naprawiony: Open WebUI przy PIERWSZYM starcie zapisuje połączenia ze
+    #       zmiennych środowiskowych do swojej bazy i potem czyta już tylko ją -
+    #       zmiana klucza w unicie nic nie dawała i WebUI traciło wszystkie
+    #       modele (sprawdzone na 0.12.2/0.12.3). Inne połączenia, dopisane
+    #       przez usera w Panelu administratora, zostają nietknięte.
+    baza = _sciezka_bazy()
+    if not baza:
+        return  # WHY: WebUI jeszcze nigdy nie startowało - wystarczy zmienna w unicie
+    with sqlite3.connect(baza, timeout=10) as polaczenie:
+        wiersze = dict(polaczenie.execute(
+            "SELECT key, value FROM config WHERE key IN ('openai.api_base_urls', 'openai.api_keys')"
+        ).fetchall())
+        adresy = json.loads(wiersze.get("openai.api_base_urls") or "[]")
+        klucze = json.loads(wiersze.get("openai.api_keys") or "[]")
+        klucze += [""] * (len(adresy) - len(klucze))
+        zmieniono = False
+        for i, adres in enumerate(adresy):
+            if adres.rstrip("/") == f"{LITELLM_URL}/v1" and klucze[i] != klucz_api:
+                klucze[i] = klucz_api
+                zmieniono = True
+        if zmieniono:
+            polaczenie.execute(
+                "UPDATE config SET value = ?, updated_at = ? WHERE key = 'openai.api_keys'",
+                (json.dumps(klucze), int(time.time())),
+            )
+
+
+def zastosuj_klucz():
+    # WHAT: nowy klucz API LiteLLM -> unit (pierwszy start WebUI) i zapisana
+    #       konfiguracja Open WebUI (każdy kolejny), potem restart działającego.
+    if not zainstalowane():
+        return
+    dzialalo = dziala()
+    _zapisz_unit()
+    if dzialalo:
+        _systemctl_user(["stop", "open-webui.service"])
+    try:
+        _ustaw_klucz_w_bazie(litellm_manager.klucz() or "sk-anything")
+    except (sqlite3.Error, ValueError) as e:
+        raise RuntimeError(
+            _("Nie udało się zapisać klucza w konfiguracji Open WebUI ({blad}) — wpisz go ręcznie w Panelu administratora → Ustawienia → Połączenia.").format(blad=e)
+        )
+    finally:
+        if dzialalo:
+            _systemctl_user(["start", "open-webui.service"])
