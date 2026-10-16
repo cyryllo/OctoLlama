@@ -33,6 +33,7 @@ from flask import Flask, Response, flash, redirect, render_template, request, se
 import hosts_store
 import i18n
 import install_generator
+import katalog_modeli
 import litellm_manager as litellm
 import litellm_ustawienia
 import openwebui_manager as webui
@@ -728,13 +729,39 @@ def modele_widok(nazwa):
     modele = klient.list_models()
     zaladowane = {m["name"] for m in klient.list_loaded()}
 
+    # WHAT: wyszukiwarka modeli (ollama.com + Hugging Face) - ?q= daje listę
+    #       wyników, ?zrodlo=&id= warianty wybranego wyniku do pobrania.
+    zapytanie = request.args.get("q", "").strip()
+    zrodlo = request.args.get("zrodlo", "")
+    model_id = request.args.get("id", "")
+    wyniki, bledy, warianty = [], [], None
+    if zapytanie:
+        wyniki, bledy = katalog_modeli.szukaj(zapytanie)
+        # WHY: wklejony link/repo HF daje dokładnie jeden wynik - od razu
+        #      pokazujemy jego warianty, bez dodatkowego kliknięcia.
+        if not model_id and len(wyniki) == 1 and "/" in zapytanie:
+            zrodlo, model_id = wyniki[0]["zrodlo"], wyniki[0]["id"]
+    if zrodlo in ("ollama", "hf") and model_id:
+        try:
+            warianty = katalog_modeli.warianty(zrodlo, model_id)
+        except (requests.RequestException, ValueError) as e:
+            bledy.append(str(e))
+
     return render_template(
         "modele.html",
         host=host,
         modele=modele,
         zaladowane=zaladowane,
+        zrodlo_modelu=katalog_modeli.zrodlo_modelu,
         pobrania=pobierania.stan_hosta(nazwa),
-        odswiezaj=pobierania.aktywne(nazwa),
+        # WHY: auto-odświeżanie co 2 s przy otwartej wyszukiwarce odpytywałoby
+        #      ollama.com/HF w kółko - wtedy postęp odświeża się ręcznie.
+        odswiezaj=pobierania.aktywne(nazwa) and not (zapytanie or model_id),
+        zapytanie=zapytanie,
+        wyniki=wyniki,
+        bledy=bledy,
+        wybrany=(zrodlo, model_id),
+        warianty=warianty,
     )
 
 

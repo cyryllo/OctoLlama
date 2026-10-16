@@ -161,7 +161,9 @@ w przeglądarce telefonu. Gotowe — czat działa na modelach z całej sieci.
 Zakładka Slave → Dodaj hosta → uruchom wygenerowany instalator na nowej maszynie.
 
 **Model X ma być dostępny w VS Code.**
-Zakładka Master → zarządzanie modelami → pobierz model (na wybranym hoście).
+Zakładka Master → zarządzanie modelami → wpisz nazwę w wyszukiwarkę (szuka
+naraz w bibliotece Ollamy i na Hugging Face; można też wkleić link do repo
+GGUF z HF) → „Warianty” → „Pobierz” przy wybranym rozmiarze/kwantyzacji.
 Potem zakładka LLM → zaznacz model do wystawienia → wygeneruj konfigurację
 Continue.dev → wklej ją u siebie.
 

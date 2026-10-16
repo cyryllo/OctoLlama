@@ -171,7 +171,9 @@ phone's browser. Done — the chat runs on models from your whole network.
 Slave tab → Add host → run the generated installer on the new machine.
 
 **Model X needs to be available in VS Code.**
-Master tab → model management → pull the model (on the host you choose).
+Master tab → model management → type a name into the search box (it looks
+in the Ollama library and on Hugging Face at once; you can also paste a link
+to a GGUF repo on HF) → "Variants" → "Pull" next to the size/quantization you want.
 Then LLM tab → check the model to expose it → generate the Continue.dev
 config → paste it on your machine.
 

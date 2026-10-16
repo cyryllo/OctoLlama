@@ -9,12 +9,13 @@
 
   <table>
     <thead>
-      <tr><th>{{ _("Model") }}</th><th>{{ _("Rozmiar") }}</th><th>{{ _("W pamięci") }}</th><th></th></tr>
+      <tr><th>{{ _("Model") }}</th><th>{{ _("Źródło") }}</th><th>{{ _("Rozmiar") }}</th><th>{{ _("W pamięci") }}</th><th></th></tr>
     </thead>
     <tbody>
       {% for m in modele %}
         <tr>
           <td>{{ m.name }}</td>
+          <td>{{ zrodlo_modelu(m.name) }}</td>
           <td>{{ (m.size / (1024**3)) | round(1) }} GB</td>
           <td>{{ _("tak") if m.name in zaladowane else "—" }}</td>
           <td>
@@ -25,7 +26,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="4">{{ _("Brak zainstalowanych modeli (albo host nieosiągalny).") }}</td></tr>
+        <tr><td colspan="5">{{ _("Brak zainstalowanych modeli (albo host nieosiągalny).") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -40,15 +41,90 @@
           {% if p.blad %}<br><span class="pill blad">{{ p.blad }}</span>{% endif %}
         </p>
       {% endfor %}
+      {% if not odswiezaj %}
+        <p><a href="{{ request.full_path }}">{{ _("Odśwież postęp") }}</a></p>
+      {% endif %}
     </fieldset>
   {% endif %}
 
   <fieldset>
     <legend>{{ _("Pobierz nowy model") }}</legend>
-    <form method="post" action="{{ url_for('modele_pobierz', nazwa=host.nazwa) }}">
-      <label for="model">{{ _("Nazwa modelu (jak w") }} <code>ollama pull</code>)</label>
-      <input type="text" id="model" name="model" placeholder="{{ _('np. llama3.2') }}" required>
-      <button type="submit" class="primary">{{ _("Pobierz") }}</button>
+    <form method="get" action="{{ url_for('modele_widok', nazwa=host.nazwa) }}">
+      <label for="q">{{ _("Szukaj w bibliotece Ollamy i na Hugging Face (nazwa albo link do repo HF)") }}</label>
+      <input type="text" id="q" name="q" value="{{ zapytanie }}" placeholder="{{ _('np. qwen3 albo huggingface.co/bartowski/...-GGUF') }}" required>
+      <button type="submit" class="primary">{{ _("Szukaj") }}</button>
     </form>
+    <p><small>{{ _("Z Hugging Face pokazujemy tylko repozytoria z plikami GGUF — tylko takie Ollama potrafi pobrać.") }}</small></p>
+
+    {% for b in bledy %}
+      <p><span class="pill blad">{{ b }}</span></p>
+    {% endfor %}
+
+    {% if zapytanie and not wyniki and not bledy %}
+      <p>{{ _("Nic nie znaleziono.") }}</p>
+    {% endif %}
+
+    {% if wyniki %}
+      <table>
+        <thead>
+          <tr><th>{{ _("Model") }}</th><th>{{ _("Źródło") }}</th><th>{{ _("Pobrania") }}</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for w in wyniki %}
+            <tr>
+              <td>
+                <strong>{{ w.id }}</strong>
+                {% if w.opis %}<br><small>{{ w.opis }}</small>{% endif %}
+                {% if w.mozliwosci or w.rozmiary %}
+                  <br><small>{{ (w.mozliwosci + w.rozmiary) | join(" · ") }}</small>
+                {% endif %}
+              </td>
+              <td>{{ "Hugging Face" if w.zrodlo == "hf" else "Ollama" }}</td>
+              <td>{{ w.pobrania or "—" }}</td>
+              <td>
+                {% if wybrany == (w.zrodlo, w.id) %}
+                  <span class="pill ok">{{ _("wybrany") }}</span>
+                {% else %}
+                  <a href="{{ url_for('modele_widok', nazwa=host.nazwa, q=zapytanie, zrodlo=w.zrodlo, id=w.id) }}#warianty">{{ _("Warianty") }}</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    {% if warianty %}
+      <h3 id="warianty">{{ _("Warianty") }} — {{ wybrany[1] }}</h3>
+      <table>
+        <thead>
+          <tr><th>{{ _("Wariant") }}</th><th>{{ _("Rozmiar") }}</th><th>{{ _("Kontekst") }}</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for nazwa_pull, etykieta, rozmiar, kontekst in warianty %}
+            <tr>
+              <td>{{ etykieta or _("domyślny (bez sufiksu)") }}<br><small><code>{{ nazwa_pull }}</code></small></td>
+              <td>{{ ((rozmiar / (1024**3)) | round(1)) ~ " GB" if rozmiar else "—" }}</td>
+              <td>{{ kontekst or "—" }}</td>
+              <td>
+                <form method="post" action="{{ url_for('modele_pobierz', nazwa=host.nazwa) }}" class="inline">
+                  <input type="hidden" name="model" value="{{ nazwa_pull }}">
+                  <button type="submit" class="primary">{{ _("Pobierz") }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <details>
+      <summary>{{ _("Znasz dokładną nazwę? Pobierz bez szukania") }}</summary>
+      <form method="post" action="{{ url_for('modele_pobierz', nazwa=host.nazwa) }}">
+        <label for="model">{{ _("Nazwa modelu (jak w") }} <code>ollama pull</code>)</label>
+        <input type="text" id="model" name="model" placeholder="{{ _('np. llama3.2:3b albo hf.co/user/repo:Q4_K_M') }}" required>
+        <button type="submit" class="primary">{{ _("Pobierz") }}</button>
+      </form>
+    </details>
   </fieldset>
 {% endblock %}
